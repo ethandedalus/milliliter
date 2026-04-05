@@ -1,0 +1,13 @@
+:set prompt "\ESC[1;33mλ\ESC[0m "
+:set prompt-cont "\ESC[1;33m|\ESC[0m "
+
+:set -fprint-explicit-foralls
+:set -fprint-explicit-kinds
+:set -fprint-unicode-syntax
+
+:set +t
+:set +s
+:set +m
+
+:set -XLambdaCase
+:set -XTupleSections

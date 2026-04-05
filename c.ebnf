@@ -1,0 +1,7 @@
+<program> ::= <function>
+<function> ::= int <identifier> "(" "void" ")" "{" <statement> "}"
+<statement> ::= return <expr> ";"
+<expr> ::= <literal> | <unary-op> <expr> | "(" <expr> ")"
+<identifier> ::= ? an identifier ?
+<literal> ::= ? a literal value ?
+<unary-op> ::= "~" | "-"
