@@ -127,9 +127,14 @@ test-suite milliliter-test
     Codegen.Cases
     Codegen.CodegenSpec
     Codegen.Emit.EmitSpec
-    IRSpec
-    LexSpec
-    ParseSpec
+    IR.IRSpec
+    Lexer.LexSpec
+    Parser.ParseExprSpec
+    Parser.ParseExprTestCases
+    Parser.ParseFactorSpec
+    Parser.ParseFactorTestCases
+    Parser.ParseStmtSpec
+    Parser.ParseStmtTestCases
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:

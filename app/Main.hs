@@ -32,19 +32,19 @@ compile (Options fileName stopAfterLex stopAfterParse stopAfterIR stopAfterCodeg
             Left err -> error (show err)
             Right (_, builder) -> unless stopAfterCodegen $ do
               TL.writeFile out $ toLazyText builder
-  where
-    lex' p = either (error . show) pure $ evalStateT runLexer (p, mkSourceLoc 1 1)
-    parse' ts = either (error . show) pure $ evalStateT runParser ts
-    ir' p = either (error . show) pure $ evalStateT (lowerProgram p) 0
-    codegen' ast = either (error . show) pure $ lower ast
+ where
+  lex' p = either (error . show) pure $ evalStateT runLexer (p, mkSourceLoc 1 1)
+  parse' ts = either (error . show) pure $ evalStateT runParser ts
+  ir' p = either (error . show) pure $ evalStateT (lowerProgram p) 0
+  codegen' ast = either (error . show) pure $ lower ast
 
 main :: IO ()
 main = execParser opts >>= compile
-  where
-    opts =
-      info
-        (options <**> helper)
-        ( fullDesc
-            <> header "milliliter - a minimal C compiler"
-            <> progDesc "Milliliter is a tiny C Compiler"
-        )
+ where
+  opts =
+    info
+      (options <**> helper)
+      ( fullDesc
+          <> header "milliliter - a minimal C compiler"
+          <> progDesc "Milliliter is a tiny C Compiler"
+      )

@@ -8,6 +8,7 @@ module Lexer.Types
     Lexer,
     Span (..),
     LexError (..),
+    mkNilSpan,
   )
 where
 
@@ -68,5 +69,8 @@ mkSpan = Span
 
 mkSourceLoc :: Int -> Int -> SourceLoc
 mkSourceLoc = SourceLoc
+
+mkNilSpan :: Span
+mkNilSpan = mkSpan (mkSourceLoc 0 0) (mkSourceLoc 0 0)
 
 type Lexer a = StateT (String, SourceLoc) (Either LexError) a

@@ -1,4 +1,4 @@
-module LexSpec where
+module Lexer.LexSpec where
 
 import qualified Compiler.Types as CT (Literal (..))
 import Control.Monad (forM_)

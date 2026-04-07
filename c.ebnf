@@ -1,7 +1,9 @@
 <program> ::= <function>
 <function> ::= int <identifier> "(" "void" ")" "{" <statement> "}"
 <statement> ::= return <expr> ";"
-<expr> ::= <literal> | <unary-op> <expr> | "(" <expr> ")"
+<factor> ::= <literal> | <unary-op> <factor> | "(" <expr> ")"
+<expr> ::= <factor> | <expr> <binary-op> <expr>
 <identifier> ::= ? an identifier ?
 <literal> ::= ? a literal value ?
 <unary-op> ::= "~" | "-"
+<binary-op> ::= "+" | "-" | "*" | "/" | "%"

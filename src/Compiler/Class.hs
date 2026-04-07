@@ -1,9 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Compiler.Class (From (..), into) where
+module Compiler.Class (From (..), TryFrom (..), ConversionError (..)) where
+
+newtype ConversionError = ConversionError String deriving (Eq, Show)
 
 class From a b where
   from :: a -> b
 
-into :: (From a b) => a -> b
-into = from
+class TryFrom a b where
+  tryFrom :: a -> Either ConversionError b
