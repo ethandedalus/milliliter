@@ -1,20 +1,20 @@
-module Codegen.ASM
-  ( lowerVal,
-    lowerInstruction,
-    lowerInstructions,
-    lowerFunc,
-    lower,
-  )
+module Codegen.ASM (
+  lowerVal,
+  lowerInstruction,
+  lowerInstructions,
+  lowerFunc,
+  lower,
+)
 where
 
-import Codegen.Types
-  ( CodegenError (..),
-    Func (..),
-    Instruction (..),
-    Operand (..),
-    Program (..),
-    Register (..),
-  )
+import Codegen.Types (
+  CodegenError (..),
+  Func (..),
+  Instruction (..),
+  Operand (..),
+  Program (..),
+  Register (..),
+ )
 import Compiler.Class (from)
 import Compiler.Types (Literal (LiteralInt))
 import qualified IR.Types as IR (Func (..), Instruction (..), Program (..), Val (..))

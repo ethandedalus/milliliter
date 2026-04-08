@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module Parser.Combinators (parseFactor, parseExpr, parseProgram, parseStmt) where
+module Parser.Combinators (parseFactor, parseExpr, parseProgram, parseStmt, parseFunc) where
 
 import Control.Monad (void)
 import Control.Monad.Except (throwError)
@@ -38,8 +38,8 @@ consumeToken expected = do
     ((t, _) : _) -> throwError (unexpectedToken t (show expected))
     [] -> throwError (unexpectedEOF (show expected))
 
-consumeToken' :: Parser ()
-consumeToken' = do
+discardToken :: Parser ()
+discardToken = do
   consumeComments
   stream <- get
   case stream of
@@ -108,7 +108,7 @@ parseExpr minPrecedence = do
       (Just (op, precedence))
         | op `elem` binaryOperators
         , precedence >= minPrecedence -> do
-            consumeToken'
+            discardToken
             right <- parseExpr (precedence + 1)
             go (Binary op left right)
       _ -> return left

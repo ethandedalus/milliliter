@@ -17,8 +17,7 @@ lowerFactor factor = do
     (PT.Lit lit) -> return ([], Lit lit)
     (PT.Unary op inner) -> do
       (instructions, src) <- lowerFactor inner
-      tmp <- makeTemporary "tmp"
-      let dst = Var tmp
+      dst <- Var <$> makeTemporary "tmp"
       return (instructions ++ [Unary (from op) src dst], dst)
     (PT.Expr expr) -> lowerExpr expr
 
@@ -27,10 +26,10 @@ lowerExpr expr = do
   case expr of
     (PT.Factor factor) -> lowerFactor factor
     (PT.Binary op lhs rhs) -> do
-      (instructions', _) <- lowerExpr lhs
-      (instructions'', dst) <- lowerExpr rhs
-      tmp <- makeTemporary "tmp"
-      return (instructions' ++ instructions'', dst)
+      (instructions', e1) <- lowerExpr lhs
+      (instructions'', e2) <- lowerExpr rhs
+      dst <- Var <$> makeTemporary "tmp"
+      return (instructions' ++ instructions'' ++ [Binary (from op) e1 e2 dst], dst)
 
 lowerStmt :: PT.Stmt -> Emitter [Instruction]
 lowerStmt stmt = do

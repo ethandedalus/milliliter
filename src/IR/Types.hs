@@ -1,12 +1,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module IR.Types where
+module IR.Types (
+  Val (..),
+  UnaryOperator (..),
+  Instruction (..),
+  Func (..),
+  Program (..),
+  Emitter,
+  BinaryOperator (..),
+) where
 
 import Compiler.Class (From (..))
 import Compiler.Types (Literal)
 import Control.Monad.State (StateT)
 import IR.Errors (IRError)
-import qualified Parser.Types as PT (UnaryOperator (..))
+import qualified Parser.Types as PT (BinaryOperator (..), UnaryOperator (..))
 
 data Val = Lit Literal | Var String deriving (Show, Eq)
 
@@ -16,12 +24,19 @@ instance From PT.UnaryOperator UnaryOperator where
   from PT.Complement = Complement
   from PT.Negate = Negate
 
-data Instruction = Return Val | Unary UnaryOperator Val Val deriving (Show, Eq)
+data BinaryOperator = Add | Sub | Mul | Div | Mod deriving (Eq, Show)
+
+instance From PT.BinaryOperator BinaryOperator where
+  from PT.Add = Add
+  from PT.Sub = Sub
+  from PT.Mul = Mul
+  from PT.Div = Div
+  from PT.Mod = Mod
+
+data Instruction = Return Val | Unary UnaryOperator Val Val | Binary BinaryOperator Val Val Val deriving (Show, Eq)
 
 data Func = Func String [Instruction] deriving (Show, Eq)
 
 newtype Program = Program Func deriving (Show, Eq)
-
-data AST = ProgramNode Program | FuncNode Func | InstructionNode Instruction | ValNode Val deriving (Show, Eq)
 
 type Emitter a = StateT Int (Either IRError) a

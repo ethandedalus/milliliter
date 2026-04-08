@@ -54,6 +54,7 @@ library
     Codegen.InstructionFixup
     Codegen.PseudoRegisters
     Codegen.Types
+    CompileError
     Compiler.Class
     Compiler.Types
     IR.Emit
@@ -127,14 +128,15 @@ test-suite milliliter-test
     Codegen.Cases
     Codegen.CodegenSpec
     Codegen.Emit.EmitSpec
-    IR.IRSpec
+    IR.LowerExprSpec
+    IR.LowerFactorSpec
+    IR.LowerStmtSpec
     Lexer.LexSpec
     Parser.ParseExprSpec
-    Parser.ParseExprTestCases
     Parser.ParseFactorSpec
-    Parser.ParseFactorTestCases
+    Parser.ParseFuncSpec
     Parser.ParseStmtSpec
-    Parser.ParseStmtTestCases
+    Shared.UnitTest
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:

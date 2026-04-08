@@ -1,36 +1,36 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Lexer.Rules
-  ( lexLiteral,
-    lexKeywordOrIdent,
-    lexAnd,
-    lexComma,
-    lexSingleLineComment,
-    lexMultiLineComment,
-    lexPlus,
-    lexPlusPlus,
-    lexMinus,
-    lexMinusMinus,
-    lexEq,
-    lexNotEq,
-    lexEqEq,
-    lexDivEq,
-    lexStar,
-    lexStarEq,
-    lexLShift,
-    lexRShift,
-    lexNot,
-    lexXor,
-    lexLParen,
-    lexRParen,
-    lexLBrack,
-    lexRBrack,
-    lexLBrace,
-    lexRBrace,
-    lexMod,
-    lexSemicolon,
-    allRules,
-  )
+module Lexer.Rules (
+  lexLiteral,
+  lexKeywordOrIdent,
+  lexAnd,
+  lexComma,
+  lexSingleLineComment,
+  lexMultiLineComment,
+  lexPlus,
+  lexPlusPlus,
+  lexMinus,
+  lexMinusMinus,
+  lexEq,
+  lexNotEq,
+  lexEqEq,
+  lexDivEq,
+  lexStar,
+  lexStarEq,
+  lexLShift,
+  lexRShift,
+  lexNot,
+  lexXor,
+  lexLParen,
+  lexRParen,
+  lexLBrack,
+  lexRBrack,
+  lexLBrace,
+  lexRBrace,
+  lexMod,
+  lexSemicolon,
+  allRules,
+)
 where
 
 import qualified Compiler.Types as CT (Literal (..))
@@ -46,34 +46,34 @@ lexLiteral stream =
     <|> lexBool stream
     <|> lexString stream
     <|> lexChar stream
-  where
-    lexInt s = case s =~ "^[0-9]+" :: (String, String, String) of
-      ("", m, rest)
-        | null rest || not (isAlphaNum (head rest) || head rest == '_') ->
-            Just $ RuleMatch (TLiteral (CT.LiteralInt (read m))) rest (length m)
-      _ -> Nothing
+ where
+  lexInt s = case s =~ "^[0-9]+" :: (String, String, String) of
+    ("", m, rest)
+      | null rest || not (isAlphaNum (head rest) || head rest == '_') ->
+          Just $ RuleMatch (TLiteral (CT.LiteralInt (read m))) rest (length m)
+    _ -> Nothing
 
-    lexFloat :: Rule
-    lexFloat s = case s =~ "^[0-9]+\\.[0-9]+" :: (String, String, String) of
-      ("", m, rest)
-        | null rest || not (isAlphaNum (head rest) || head rest == '_') ->
-            Just $ RuleMatch (TLiteral (CT.LiteralFloat (read m))) rest (length m)
-      _ -> Nothing
+  lexFloat :: Rule
+  lexFloat s = case s =~ "^[0-9]+\\.[0-9]+" :: (String, String, String) of
+    ("", m, rest)
+      | null rest || not (isAlphaNum (head rest) || head rest == '_') ->
+          Just $ RuleMatch (TLiteral (CT.LiteralFloat (read m))) rest (length m)
+    _ -> Nothing
 
-    lexString :: Rule
-    lexString s = case s =~ "^\"[^\"]*\"" :: (String, String, String) of
-      ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralString (init (tail m)))) rest (length m)
-      _ -> Nothing
+  lexString :: Rule
+  lexString s = case s =~ "^\"[^\"]*\"" :: (String, String, String) of
+    ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralString (init (tail m)))) rest (length m)
+    _ -> Nothing
 
-    lexChar :: Rule
-    lexChar s = case s =~ "^'[^']'" :: (String, String, String) of
-      ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralChar (m !! 1))) rest (length m)
-      _ -> Nothing
+  lexChar :: Rule
+  lexChar s = case s =~ "^'[^']'" :: (String, String, String) of
+    ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralChar (m !! 1))) rest (length m)
+    _ -> Nothing
 
-    lexBool :: Rule
-    lexBool s = case s =~ "^(true|false)" :: (String, String, String) of
-      ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralBool (m == "true"))) rest (length m)
-      _ -> Nothing
+  lexBool :: Rule
+  lexBool s = case s =~ "^(true|false)" :: (String, String, String) of
+    ("", m, rest) -> Just $ RuleMatch (TLiteral (CT.LiteralBool (m == "true"))) rest (length m)
+    _ -> Nothing
 
 lexKeywordOrIdent :: Rule
 lexKeywordOrIdent stream = case stream =~ "^[a-zA-Z_]([a-zA-Z0-9_])*([:space:])*" :: (String, String, String) of
@@ -107,17 +107,17 @@ lexPlusPlus stream = case stream =~ "^\\+\\+" :: (String, String, String) of
 
 lexStar :: Rule
 lexStar stream = case stream =~ "^\\*" :: (String, String, String) of
-  ("", _, rest) -> Just $ RuleMatch TPlus rest 1
+  ("", _, rest) -> Just $ RuleMatch TStar rest 1
   _ -> Nothing
 
 lexDiv :: Rule
 lexDiv stream = case stream =~ "^/" :: (String, String, String) of
-  ("", _, rest) -> Just $ RuleMatch TPlus rest 1
+  ("", _, rest) -> Just $ RuleMatch TDiv rest 1
   _ -> Nothing
 
 lexMod :: Rule
 lexMod stream = case stream =~ "^%" :: (String, String, String) of
-  ("", _, rest) -> Just $ RuleMatch TPlus rest 1
+  ("", _, rest) -> Just $ RuleMatch TMod rest 1
   _ -> Nothing
 
 lexLParen :: Rule
@@ -166,7 +166,7 @@ lexSingleLineComment stream = case stream =~ "^//.*" :: (String, String, String)
   _ -> Nothing
 
 lexMultiLineComment :: Rule
-lexMultiLineComment stream = case makeRegexOpts defaultCompOpt {multiline = False} defaultExecOpt "/\\*.*\\*/" `matchM` stream :: Maybe (String, String, String) of
+lexMultiLineComment stream = case makeRegexOpts defaultCompOpt{multiline = False} defaultExecOpt "/\\*.*\\*/" `matchM` stream :: Maybe (String, String, String) of
   Just ("", match, rest) -> Just $ RuleMatch (TMultiLineComment match) rest (length match)
   _ -> Nothing
 
@@ -237,34 +237,34 @@ lexNotEq stream = case stream =~ "^!=" :: (String, String, String) of
 
 allRules :: [Rule]
 allRules =
-  [ lexSingleLineComment,
-    lexMultiLineComment,
-    lexLiteral,
-    lexKeywordOrIdent,
-    lexMinus,
-    lexPlus,
-    lexStar,
-    lexDiv,
-    lexMod,
-    lexLBrace,
-    lexRBrace,
-    lexLParen,
-    lexRParen,
-    lexLBrack,
-    lexRBrack,
-    lexAnd,
-    lexOr,
-    lexXor,
-    lexLShift,
-    lexRShift,
-    lexNot,
-    lexPlusEq,
-    lexMinusEq,
-    lexStarEq,
-    lexDivEq,
-    lexEq,
-    lexEqEq,
-    lexNotEq,
-    lexSemicolon,
-    lexComma
+  [ lexSingleLineComment
+  , lexMultiLineComment
+  , lexLiteral
+  , lexKeywordOrIdent
+  , lexMinus
+  , lexPlus
+  , lexStar
+  , lexDiv
+  , lexMod
+  , lexLBrace
+  , lexRBrace
+  , lexLParen
+  , lexRParen
+  , lexLBrack
+  , lexRBrack
+  , lexAnd
+  , lexOr
+  , lexXor
+  , lexLShift
+  , lexRShift
+  , lexNot
+  , lexPlusEq
+  , lexMinusEq
+  , lexStarEq
+  , lexDivEq
+  , lexEq
+  , lexEqEq
+  , lexNotEq
+  , lexSemicolon
+  , lexComma
   ]
