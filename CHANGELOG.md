@@ -30,4 +30,11 @@
 * Add a custom `.ghci` for easier repl dev environment configuration
 * Clean up compiler driver
 
+## 0.1.4.0 -- 2026-04-09
+
+* Implement support for the following binary operators: `+`, `-`, `*`, `/`, and `%`
+* Restructure the compiler so that stages are composable via `>=>`, making for much easier testing
+* Refactor compiler errors
+
+
 

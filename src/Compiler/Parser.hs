@@ -1,0 +1,11 @@
+module Compiler.Parser (parse) where
+
+import qualified Compiler.Error as CE (CompileError (ParseError))
+import Compiler.Lexer.Types (Span, Token)
+import Compiler.Parser.Types (Parser)
+import Compiler.Stage (Stage)
+import Control.Monad.State (evalStateT)
+import Data.Bifunctor (first)
+
+parse :: Parser a -> Stage [(Token, Span)] a
+parse parser tokens = first CE.ParseError $ evalStateT parser tokens

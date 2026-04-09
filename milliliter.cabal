@@ -18,7 +18,7 @@ name: milliliter
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version: 0.1.3.0
+version: 0.1.4.0
 -- A short (one-line) description of the package.
 -- synopsis:
 -- A longer description of the package.
@@ -47,26 +47,29 @@ library
   import: warnings
   -- Modules exported by the library.
   exposed-modules:
-    Cli
-    Codegen
-    Codegen.ASM
-    Codegen.Emit
-    Codegen.InstructionFixup
-    Codegen.PseudoRegisters
-    Codegen.Types
-    CompileError
+    Compiler
     Compiler.Class
+    Compiler.Cli
+    Compiler.Codegen
+    Compiler.Codegen.ASM
+    Compiler.Codegen.Emit
+    Compiler.Codegen.InstructionFixup
+    Compiler.Codegen.PseudoRegisters
+    Compiler.Codegen.Types
+    Compiler.Error
+    Compiler.IR
+    Compiler.IR.Errors
+    Compiler.IR.Lower
+    Compiler.IR.Types
+    Compiler.Lexer
+    Compiler.Lexer.Rules
+    Compiler.Lexer.Types
+    Compiler.Parser
+    Compiler.Parser.Combinators
+    Compiler.Parser.Errors
+    Compiler.Parser.Types
+    Compiler.Stage
     Compiler.Types
-    IR.Emit
-    IR.Errors
-    IR.Types
-    Lexer
-    Lexer.Rules
-    Lexer.Types
-    Parser
-    Parser.Combinators
-    Parser.Errors
-    Parser.Types
 
   -- Modules included in this library but not exported.
   -- other-modules:
@@ -74,14 +77,10 @@ library
   -- other-extensions:
   -- Other library packages from which modules are imported.
   build-depends:
-    aeson ^>=2.2.3.0,
     base ^>=4.18.3.0,
     containers,
-    filepath ^>=1.5.5.0,
     mtl ^>=2.3.1,
     optparse-applicative ^>=0.18.1.0,
-    process ^>=1.6.27.0,
-    random,
     regex-tdfa ^>=1.3.2.2,
     text ^>=2.1.2,
 
@@ -101,14 +100,11 @@ executable milliliter
   -- other-extensions:
   -- Other library packages from which modules are imported.
   build-depends:
-    aeson ^>=2.2.3.0,
     base ^>=4.18.3.0,
     containers,
-    filepath ^>=1.5.5.0,
     milliliter,
     mtl ^>=2.3.1,
     optparse-applicative ^>=0.18.1.0,
-    random,
     regex-tdfa ^>=1.3.2.2,
     text ^>=2.1.2,
 
@@ -124,19 +120,18 @@ test-suite milliliter-test
   default-language: Haskell2010
   -- Modules included in this executable, other than Main.
   other-modules:
-    Codegen.ASM.ASMSpec
-    Codegen.Cases
-    Codegen.CodegenSpec
-    Codegen.Emit.EmitSpec
-    IR.LowerExprSpec
-    IR.LowerFactorSpec
-    IR.LowerStmtSpec
-    Lexer.LexSpec
-    Parser.ParseExprSpec
-    Parser.ParseFactorSpec
-    Parser.ParseFuncSpec
-    Parser.ParseStmtSpec
-    Shared.UnitTest
+    Compiler.Test.Codegen.ASMSpec
+    Compiler.Test.Codegen.EmitSpec
+    Compiler.Test.Codegen.PseudoRegistersSpec
+    Compiler.Test.IR.LowerExprSpec
+    Compiler.Test.IR.LowerFactorSpec
+    Compiler.Test.IR.LowerStmtSpec
+    Compiler.Test.Lexer.LexSpec
+    Compiler.Test.Parser.ParseExprSpec
+    Compiler.Test.Parser.ParseFactorSpec
+    Compiler.Test.Parser.ParseFuncSpec
+    Compiler.Test.Parser.ParseStmtSpec
+    Compiler.Test.Shared.UnitTest
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
