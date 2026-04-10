@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Compiler.Codegen.InstructionFixup (lowerProgram, lowerInstruction, lowerInstructions, lowerFunc, instructionFixup) where
+module Compiler.Codegen.InstructionFixup (lowerProgram, lowerInstruction, lowerInstructions, lowerFunc, lower) where
 
 import Compiler.Stage (Stage)
 
@@ -31,5 +31,5 @@ lowerFunc (Func name instructions stackAlloc) = Func name (lowerInstructions ins
 lowerProgram :: Program -> Program
 lowerProgram (Program func) = Program (lowerFunc func)
 
-instructionFixup :: (a -> b) -> Stage a b
-instructionFixup f x = pure (f x)
+lower :: (a -> b) -> Stage a b
+lower f x = pure (f x)

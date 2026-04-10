@@ -20,7 +20,18 @@ import Control.Monad.State (StateT)
 
 data UnaryOperator = Complement | Negate deriving (Eq, Show)
 
-data BinaryOperator = Add | Sub | Mul | Div | Mod deriving (Eq, Show, Ord)
+data BinaryOperator
+  = Add
+  | Sub
+  | Mul
+  | Div
+  | Mod
+  | And
+  | Or
+  | Xor
+  | LeftShift
+  | RightShift
+  deriving (Eq, Show, Ord)
 
 data Expr = Factor Factor | Binary BinaryOperator Expr Expr deriving (Eq, Show)
 

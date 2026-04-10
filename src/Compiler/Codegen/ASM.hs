@@ -48,6 +48,11 @@ lowerInstruction (IR.Binary IR.Mod src1 src2 dst) = do
   src2' <- lowerVal src2
   dst' <- lowerVal dst
   return [Mov src1' (Register AX), CDQ, IDiv src2', Mov (Register DX) dst']
+lowerInstruction (IR.Binary IR.LeftShift src1 src2 dst) = do
+  src1' <- lowerVal src1
+  src2' <- lowerVal src2
+  dst' <- lowerVal dst
+  return [Mov src1' dst', Mov src2' (Register CX), Binary LeftShift (Register CL) dst']
 lowerInstruction (IR.Binary op src1 src2 dst) = do
   op' <- liftEither $ first ConvertBinaryOperator (tryFrom op :: Either ConversionError BinaryOperator)
   src1' <- lowerVal src1

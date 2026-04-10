@@ -122,6 +122,7 @@ test-suite milliliter-test
   other-modules:
     Compiler.Test.Codegen.ASMSpec
     Compiler.Test.Codegen.EmitSpec
+    Compiler.Test.Codegen.InstructionFixUpSpec
     Compiler.Test.Codegen.PseudoRegistersSpec
     Compiler.Test.IR.LowerExprSpec
     Compiler.Test.IR.LowerFactorSpec

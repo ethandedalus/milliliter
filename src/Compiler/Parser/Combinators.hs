@@ -93,6 +93,11 @@ peekBinaryOperator = do
     (Just TStar) -> return . return $ (Mul, 50)
     (Just TDiv) -> return . return $ (Div, 50)
     (Just TMod) -> return . return $ (Mod, 50)
+    (Just TLShift) -> return . return $ (LeftShift, 40)
+    (Just TRShift) -> return . return $ (RightShift, 40)
+    (Just TAnd) -> return . return $ (And, 35)
+    (Just TXor) -> return . return $ (Xor, 30)
+    (Just TOr) -> return . return $ (Or, 25)
     _ -> return Nothing
 
 parseExpr :: Int -> Parser Expr
@@ -101,7 +106,7 @@ parseExpr minPrecedence = do
   left <- parseFactor
   go (Factor left)
  where
-  binaryOperators = [Add, Sub, Mul, Div, Mod]
+  binaryOperators = [Add, Sub, Mul, Div, Mod, LeftShift, RightShift, And, Xor, Or]
   go left = do
     next <- peekBinaryOperator
     case next of

@@ -69,4 +69,4 @@ spec = do
           ]
 
     forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ unpack . toLazyText <$> execWriterT (runReaderT (E.instruction input) 0) `shouldBe` expected
+      it ("case: " ++ name) $ unpack . toLazyText <$> execWriterT (runReaderT (E.emitInstruction input) 0) `shouldBe` expected

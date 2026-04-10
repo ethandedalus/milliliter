@@ -22,12 +22,13 @@ module Compiler.Codegen.Emit (
   op,
   constant,
   operand,
-  instruction,
+  emitInstruction,
   prologue,
   epilogue,
-  func,
+  emitFunc,
   parenthesize_,
   emitProgram,
+  emitInstructions,
 )
 where
 
@@ -53,6 +54,10 @@ import Data.List (intersperse)
 import Data.Text.Lazy.Builder
 
 rbp
+  , cl
+  , ecx
+  , shll
+  , shrl
   , cdq
   , r10d
   , r11d
@@ -101,6 +106,10 @@ idivl = tell $ fromString "idivl"
 addl = tell $ fromString "addl"
 subl = tell $ fromString "subl"
 imull = tell $ fromString "imull"
+shll = tell $ fromString "shll"
+shrl = tell $ fromString "shrl"
+ecx = tell $ fromString "%ecx"
+cl = tell $ fromString "%cl"
 
 asm :: Emitter () -> [Emitter ()] -> Emitter ()
 asm m args = do
@@ -124,6 +133,8 @@ binop :: BinaryOperator -> Emitter ()
 binop Add = addl
 binop Sub = subl
 binop Mul = imull
+binop LeftShift = shll
+binop RightShift = shrl
 
 constant :: Int -> Emitter ()
 constant v = tell $ fromString $ '$' : show v
@@ -148,11 +159,13 @@ operand operand' = do
     (Register DX) -> edx
     (Register R10) -> r10d
     (Register R11) -> r11d
+    (Register CX) -> ecx
+    (Register CL) -> cl
     (Stack x) -> offset x >> parenthesize_ rbp
-    other -> throwError (IllegalOperand other "ICE: all psuedoregisters should be removed before code emission")
+    pseudo@(Pseudo _) -> throwError (IllegalOperand pseudo "ICE: all psuedoregisters should be removed before code emission")
 
-instruction :: Instruction -> Emitter ()
-instruction ins' = do
+emitInstruction :: Instruction -> Emitter ()
+emitInstruction ins' = do
   case ins' of
     illegal@(Mov (Stack _) (Stack _)) -> throwError (IllegalInstruction illegal "ICE: mov instruction between two stack addresses is not allowed")
     (Mov src dst) -> asm movl [operand src, operand dst]
@@ -163,22 +176,25 @@ instruction ins' = do
     (IDiv operand') -> asm idivl [operand operand']
     Ret -> epilogue
 
+emitInstructions :: [Instruction] -> Emitter ()
+emitInstructions = mapM_ emitInstruction
+
 prologue :: Emitter ()
 prologue = do
   asm pushq [rbp]
   asm movq [rsp, rbp]
 
-func :: Func -> Emitter ()
-func (Func name instructions stackAlloc) = do
+emitFunc :: Func -> Emitter ()
+emitFunc (Func name instructions stackAlloc) = do
   indented $ globl >> spc >> fname name >> nl
   fname name >> colon >> nl
   indented $ do
     prologue
-    instruction $ StackAlloc stackAlloc
-    mapM_ instruction instructions
+    emitInstruction $ StackAlloc stackAlloc
+    mapM_ emitInstruction instructions
 
 emitProgram :: Program -> Emitter ()
-emitProgram (Program f) = func f
+emitProgram (Program f) = emitFunc f
 
 emit :: (i -> Emitter a) -> Stage i Builder
 emit f x = first CE.CodegenError q

@@ -12,12 +12,17 @@ import Data.Text.Lazy.Builder (Builder)
 
 data UnaryOperator = Complement | Negate deriving (Eq, Show)
 
-data BinaryOperator = Add | Sub | Mul deriving (Eq, Show)
+data BinaryOperator = Add | Sub | Mul | LeftShift | RightShift | And | Xor | Or deriving (Eq, Show)
 
 instance TryFrom IR.BinaryOperator BinaryOperator where
   tryFrom IR.Add = pure Add
   tryFrom IR.Sub = pure Sub
   tryFrom IR.Mul = pure Mul
+  tryFrom IR.LeftShift = pure LeftShift
+  tryFrom IR.RightShift = pure RightShift
+  tryFrom IR.And = pure And
+  tryFrom IR.Xor = pure Xor
+  tryFrom IR.Or = pure Or
   tryFrom IR.Div = Left $ ConversionError "div cannot be lowered directly"
   tryFrom IR.Mod = Left $ ConversionError "mod cannot be lowered directly"
 
@@ -25,7 +30,7 @@ instance From IR.UnaryOperator UnaryOperator where
   from IR.Complement = Complement
   from IR.Negate = Negate
 
-data Register = AX | DX | R10 | R11 deriving (Eq, Show)
+data Register = AX | DX | R10 | R11 | CX | CL deriving (Eq, Show)
 
 data Operand = Imm Int | Register Register | Pseudo String | Stack Int deriving (Eq, Show)
 
