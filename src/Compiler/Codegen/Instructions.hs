@@ -1,6 +1,6 @@
 module Compiler.Codegen.Instructions where
 
-import Compiler.Codegen.Types (Emitter)
+import Compiler.Codegen.Types (CondCode (..), Emitter)
 import Control.Monad (replicateM_, unless)
 import Control.Monad.Reader (ask)
 import Control.Monad.Writer (tell)
@@ -37,14 +37,23 @@ colon = tell $ fromString ":"
 eax :: Emitter ()
 eax = tell $ fromString "%eax"
 
-ecx :: Emitter ()
-ecx = tell $ fromString "%ecx"
+al :: Emitter ()
+al = tell $ fromString "%al"
 
 edx :: Emitter ()
 edx = tell $ fromString "%edx"
 
+dl :: Emitter ()
+dl = tell $ fromString "%dl"
+
 ebx :: Emitter ()
 ebx = tell $ fromString "%ebx"
+
+ecx :: Emitter ()
+ecx = tell $ fromString "%ecx"
+
+cl :: Emitter ()
+cl = tell $ fromString "%cl"
 
 rsp :: Emitter ()
 rsp = tell $ fromString "%rsp"
@@ -61,8 +70,14 @@ r9d = tell $ fromString "%r9d"
 r10d :: Emitter ()
 r10d = tell $ fromString "%r10d"
 
+r10b :: Emitter ()
+r10b = tell $ fromString "%r10b"
+
 r11d :: Emitter ()
 r11d = tell $ fromString "%r11d"
+
+r11b :: Emitter ()
+r11b = tell $ fromString "%r11b"
 
 r12d :: Emitter ()
 r12d = tell $ fromString "%r12d"
@@ -72,9 +87,6 @@ r13d = tell $ fromString "%r13d"
 
 r14d :: Emitter ()
 r14d = tell $ fromString "%r14d"
-
-cl :: Emitter ()
-cl = tell $ fromString "%cl"
 
 -- mov
 
@@ -135,3 +147,30 @@ subq = tell $ fromString "subq"
 
 ret :: Emitter ()
 ret = tell $ fromString "ret"
+
+-- cmp/set/jmp
+
+cmpl :: Emitter ()
+cmpl = tell $ fromString "cmpl"
+
+label :: String -> Emitter ()
+label l = tell (fromString (".L" ++ l))
+
+jmp :: Emitter ()
+jmp = tell $ fromString "jmp"
+
+j :: CondCode -> Emitter ()
+j CondE = tell $ fromString "je"
+j CondNE = tell $ fromString "jne"
+j CondG = tell $ fromString "jg"
+j CondGE = tell $ fromString "jge"
+j CondL = tell $ fromString "jl"
+j CondLE = tell $ fromString "jle"
+
+set :: CondCode -> Emitter ()
+set CondE = tell $ fromString "sete"
+set CondNE = tell $ fromString "setne"
+set CondG = tell $ fromString "setg"
+set CondGE = tell $ fromString "setge"
+set CondL = tell $ fromString "setl"
+set CondLE = tell $ fromString "setle"

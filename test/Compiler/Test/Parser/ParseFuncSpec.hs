@@ -5,7 +5,6 @@ import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseFunc)
 import Compiler.Parser.Types (Expr (..), Factor (..), Func (..), Stmt (..))
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
-import Compiler.Types (Literal (..))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Prelude hiding (lex)
@@ -16,7 +15,7 @@ simpleMain :: Test
 simpleMain = UnitTest "simple main" "int main(void) { return 0; }" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseFunc
-  result = Func "main" (Return (Factor $ Lit (LiteralInt 0)))
+  result = Func "main" (Return (Factor $ Lit 0))
 
 spec :: Spec
 spec = do

@@ -5,7 +5,6 @@ import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseExpr)
 import Compiler.Parser.Types (BinaryOperator (..), Expr (..), Factor (..), UnaryOperator (..))
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
-import Compiler.Types (Literal (..))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
 
@@ -35,25 +34,25 @@ literalInt :: Test
 literalInt = UnitTest "literal int" "42" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Lit (LiteralInt 42))
+  result = Factor (Lit 42)
 
 unaryFactor1 :: Test
 unaryFactor1 = UnitTest "unary factor expression" "~42" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Unary Complement (Lit (LiteralInt 42)))
+  result = Factor (Unary Complement (Lit 42))
 
 unaryFactor2 :: Test
 unaryFactor2 = UnitTest "unary factor expression" "~(42)" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Unary Complement (Expr (Factor (Lit (LiteralInt 42)))))
+  result = Factor (Unary Complement (Expr (Factor (Lit 42))))
 
 simpleAddition :: Test
 simpleAddition = UnitTest "simple 2 term arithmetic" "21 + 21" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Binary Add (Factor (Lit (LiteralInt 21))) (Factor (Lit (LiteralInt 21)))
+  result = Binary Add (Factor (Lit 21)) (Factor (Lit 21))
 
 arith1 :: Test
 arith1 =
@@ -61,8 +60,8 @@ arith1 =
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
   result =
-    Binary Add (Factor (Lit (LiteralInt 21))) $
-      Binary Mul (Factor (Lit (LiteralInt 3))) (Factor (Lit (LiteralInt 7)))
+    Binary Add (Factor (Lit 21)) $
+      Binary Mul (Factor (Lit 3)) (Factor (Lit 7))
 
 arithWithGrouping1 :: Test
 arithWithGrouping1 =
@@ -72,8 +71,8 @@ arithWithGrouping1 =
   result =
     Binary
       Div
-      (Binary Mul (Factor (Lit (LiteralInt 10))) (Factor (Lit (LiteralInt 3))))
-      (Factor (Expr (Binary Add (Factor (Lit (LiteralInt 7))) (Factor (Lit (LiteralInt 11))))))
+      (Binary Mul (Factor (Lit 10)) (Factor (Lit 3)))
+      (Factor (Expr (Binary Add (Factor (Lit 7)) (Factor (Lit 11)))))
 
 arithWithGrouping2 :: Test
 arithWithGrouping2 = UnitTest "arithmetic with grouping (2)" "10 + 5 * (2 + 5) - 3" compile $ pure result
@@ -84,7 +83,7 @@ arithWithGrouping2 = UnitTest "arithmetic with grouping (2)" "10 + 5 * (2 + 5) -
       Sub
       ( Binary
           Add
-          (Factor (Lit (LiteralInt 10)))
-          (Binary Mul (Factor (Lit (LiteralInt 5))) (Factor (Expr (Binary Add (Factor (Lit (LiteralInt 2))) (Factor (Lit (LiteralInt 5)))))))
+          (Factor (Lit 10))
+          (Binary Mul (Factor (Lit 5)) (Factor (Expr (Binary Add (Factor (Lit 2)) (Factor (Lit 5))))))
       )
-      (Factor (Lit (LiteralInt 3)))
+      (Factor (Lit 3))

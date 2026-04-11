@@ -5,5 +5,5 @@
 <expr> ::= <factor> | <expr> <binary-op> <expr>
 <identifier> ::= ? an identifier ?
 <literal> ::= ? a literal value ?
-<unary-op> ::= "~" | "-"
-<binary-op> ::= "+" | "-" | "*" | "/" | "%"
+<unary-op> ::= "~" | "-" | "!"
+<binary-op> ::= "+" | "-" | "*" | "/" | "%" | "<<" | ">>" | "&" | "|" | "^" | "&&" | "||" | "==" | "!=" | ">" | "<" | "<=" | ">="

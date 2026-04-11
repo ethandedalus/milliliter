@@ -1,9 +1,9 @@
 module Compiler.Error where
 
 import Compiler.Codegen.Types (CodegenError)
-import Compiler.IR.Errors (IRError)
+import Compiler.IR.Types (IRError)
 import Compiler.Lexer.Types (LexError)
-import Compiler.Parser.Errors (ParseError)
+import Compiler.Parser.Types (ParseError)
 
 data CompileError
   = LexError LexError

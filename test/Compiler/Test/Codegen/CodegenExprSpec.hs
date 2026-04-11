@@ -3,9 +3,9 @@ module Compiler.Test.Codegen.CodegenExprSpec where
 import qualified Compiler.Codegen.ASM as ASM (lower, lowerInstructions)
 import qualified Compiler.Codegen.InstructionFixup as IFX (lower, lowerInstructions)
 import qualified Compiler.Codegen.PseudoRegisters as PRG (lower, lowerInstructions)
-import Compiler.Codegen.Types (BinaryOperator (..), Instruction (..), Operand (..), Register (..))
-import qualified Compiler.IR as IR (lower)
-import qualified Compiler.IR.Lower as IR (lowerExpr)
+import Compiler.Codegen.Types (BinaryOperator (..), CondCode (..), Instruction (..), Operand (..), Register (..))
+import qualified Compiler.IR as IR (transform)
+import qualified Compiler.IR.Transform as IR (transformExpr)
 import qualified Compiler.IR.Types as IR (Instruction (..))
 import qualified Compiler.Lexer as Lexer (lex)
 import qualified Compiler.Parser as P (parse)
@@ -32,10 +32,22 @@ spec = do
     forM_ lowerRightShiftExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
       run input `shouldBe` expectedResult
 
+  describe "short circuiting" $ do
+    let shortCircuitingExpressionTestCases = [lowerLogicalAnd1, lowerLogicalOr1]
+
+    forM_ shortCircuitingExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
+
+  describe "relational" $ do
+    let shortCircuitingExpressionTestCases = [lowerGreaterThan1]
+
+    forM_ shortCircuitingExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
+
 shl1 :: UnitTest [Instruction]
 shl1 = UnitTest "return shl expression" "(2 * 5) << 2" compile result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
   result =
     pure
       [ Mov (Imm 2) (Stack (-4))
@@ -45,13 +57,13 @@ shl1 = UnitTest "return shl expression" "(2 * 5) << 2" compile result
       , Mov (Stack (-4)) (Register R10)
       , Mov (Register R10) (Stack (-8))
       , Mov (Imm 2) (Register CX)
-      , Binary LeftShift (Register CL) (Stack (-8))
+      , Binary LeftShift (Register CX) (Stack (-8))
       ]
 
 shl2 :: UnitTest [Instruction]
 shl2 = UnitTest "shl" "2 * 5 << 1 + 2" compile result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
   result =
     pure
       [ Mov (Imm 2) (Stack (-4))
@@ -63,7 +75,7 @@ shl2 = UnitTest "shl" "2 * 5 << 1 + 2" compile result
       , Mov (Stack (-4)) (Register R10) -- 10 is now in %r10d
       , Mov (Register R10) (Stack (-12)) -- 10 is now in -12(%rbp)
       , Mov (Stack (-8)) (Register CX) -- 3 is now in %ecx
-      , Binary LeftShift (Register CL) (Stack (-12)) -- 80 is now in -12(%rbp)
+      , Binary LeftShift (Register CX) (Stack (-12)) -- 80 is now in -12(%rbp)
       ]
 
 sar1 :: UnitTest [Instruction]
@@ -72,7 +84,7 @@ sar1 = UnitTest "sar" "32 + 4 * 8 >> 3" compile result
   compile =
     Lexer.lex
       >=> P.parse (P.parseExpr 0)
-      >=> IR.lower IR.lowerExpr
+      >=> IR.transform IR.transformExpr
       >=> (return . fst)
       >=> ASM.lower ASM.lowerInstructions
       >=> PRG.lower PRG.lowerInstructions
@@ -90,37 +102,37 @@ sar1 = UnitTest "sar" "32 + 4 * 8 >> 3" compile result
       , Mov (Stack (-8)) (Register R10)
       , Mov (Register R10) (Stack (-12))
       , Mov (Imm 3) (Register CX)
-      , Binary RightShift (Register CL) (Stack (-12))
+      , Binary RightShift (Register CX) (Stack (-12))
       ]
 
 bitwisePrecedence1 :: UnitTest [Instruction]
 bitwisePrecedence1 = UnitTest "precedence" "80 >> 2 | 1 ^ 5 & 7 << 1" compile $ pure result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
 
   result =
     [ Mov (Imm 80) (Stack (-4))
     , Mov (Imm 2) (Register CX)
-    , Binary RightShift (Register CL) (Stack (-4))
+    , Binary RightShift (Register CX) (Stack (-4))
     , Mov (Imm 7) (Stack (-8))
     , Mov (Imm 1) (Register CX)
-    , Binary LeftShift (Register CL) (Stack (-8))
+    , Binary LeftShift (Register CX) (Stack (-8))
     , Mov (Imm 5) (Stack (-12))
     , Mov (Stack (-8)) (Register R12)
-    , Binary And (Register R12) (Stack (-12))
+    , Binary BitAnd (Register R12) (Stack (-12))
     , Mov (Imm 1) (Stack (-16))
     , Mov (Stack (-12)) (Register R12)
     , Binary Xor (Register R12) (Stack (-16))
     , Mov (Stack (-4)) (Register R10)
     , Mov (Register R10) (Stack (-20))
     , Mov (Stack (-16)) (Register R12)
-    , Binary Or (Register R12) (Stack (-20))
+    , Binary BitOr (Register R12) (Stack (-20))
     ]
 
 addition1 :: UnitTest [Instruction]
 addition1 = UnitTest "addition (1)" "21 + 21" compile $ pure result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
   result =
     [ Mov (Imm 21) (Stack (-4))
     , Binary Add (Imm 21) (Stack (-4))
@@ -129,7 +141,7 @@ addition1 = UnitTest "addition (1)" "21 + 21" compile $ pure result
 addition2 :: UnitTest [Instruction]
 addition2 = UnitTest "addition (2)" "1 + 2 + 3 + 4 + 5" compile $ pure result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
   result =
     [ Mov (Imm 1) (Stack (-4)) -- movl $1, -4(%rbp) # 1 is in a
     , Binary Add (Imm 2) (Stack (-4)) -- addl $2, -4(%rbp) # 3 is in a
@@ -147,7 +159,7 @@ addition2 = UnitTest "addition (2)" "1 + 2 + 3 + 4 + 5" compile $ pure result
 composite1 :: UnitTest [Instruction]
 composite1 = UnitTest "composite (1)" "1 + (2 * 3) + 4 / 5 + 15 % 4" compile $ pure result
  where
-  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.lower IR.lowerExpr >=> (return . fst) >=> lower
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
   result =
     [ Mov (Imm 2) (Stack (-4))
     , Mov (Stack (-4)) (Register R11)
@@ -174,4 +186,51 @@ composite1 = UnitTest "composite (1)" "1 + (2 * 3) + 4 / 5 + 15 % 4" compile $ p
     , Mov (Register R10) (Stack (-24))
     , Mov (Stack (-20)) (Register R10)
     , Binary Add (Register R10) (Stack (-24))
+    ]
+
+lowerLogicalAnd1 :: UnitTest [Instruction]
+lowerLogicalAnd1 = UnitTest "logical && (1)" "1 && 1" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
+  result =
+    [ Mov (Imm 1) (Register R11) -- movl $1, %r11d
+    , Cmp (Imm 0) (Register R11) -- cmpl $0, %r11d
+    , JmpCC CondE "_false0" -- je _false0
+    , Mov (Imm 1) (Register R11) -- movl $1, %r11d
+    , Cmp (Imm 0) (Register R11) -- cmpl $0, %r11d
+    , JmpCC CondE "_false0" -- je _false0
+    , Mov (Imm 1) (Stack (-4)) -- mov $1, -4(%rbp)
+    , Jmp "_end1" -- jmp _end1
+    , Label "_false0" -- _false0:
+    , Mov (Imm 0) (Stack (-4)) -- movl $0, -4(%rbp)
+    , Label "_end1" -- _end1:
+    ]
+
+lowerLogicalOr1 :: UnitTest [Instruction]
+lowerLogicalOr1 = UnitTest "logical || (1)" "0 || 1" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
+  result =
+    [ Mov (Imm 0) (Register R11) -- movl $0, %r11d
+    , Cmp (Imm 0) (Register R11) -- cmpl $0, %r11d
+    , JmpCC CondNE "_true0" -- jne _true0
+    , Mov (Imm 1) (Register R11) -- movl $1, %r11d
+    , Cmp (Imm 0) (Register R11) -- cmpl $0, %r11d
+    , JmpCC CondNE "_true0" -- jne _true0
+    , Mov (Imm 0) (Stack (-4)) -- mov $0, -4(%rbp)
+    , Jmp "_end1" -- jmp _end1
+    , Label "_true0" -- _true0:
+    , Mov (Imm 1) (Stack (-4)) -- movl $1, -4(%rbp)
+    , Label "_end1" -- _end1:
+    ]
+
+lowerGreaterThan1 :: UnitTest [Instruction]
+lowerGreaterThan1 = UnitTest "relational > (1)" "2 > 1" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
+  result =
+    [ Mov (Imm 2) (Register R11) -- movl $2, %r11d
+    , Cmp (Imm 1) (Register R11) -- cmpl $1, %r11d
+    , Mov (Imm 0) (Stack (-4)) -- movl $0, -4(%rbp)
+    , SetCC CondG (Stack (-4)) -- setg, -4(%rbp)
     ]

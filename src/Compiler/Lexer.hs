@@ -40,7 +40,7 @@ advance rules = do
   advanceSourceLoc
   (program, loc) <- get
   case mapMaybe ($ program) rules of
-    [] -> throwError (UnexpectedEOF $ "could not match any token: " ++ program)
+    [] -> throwError (SyntaxError ("could not match any token: " ++ take 20 program) loc)
     matches -> do
       let (RuleMatch tok res len) = maximumBy (compare `on` matchLen) matches
       let tokenEndLoc = case tok of

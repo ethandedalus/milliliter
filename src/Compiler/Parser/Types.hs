@@ -1,6 +1,3 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Compiler.Parser.Types (
   Expr (..),
   Stmt (..),
@@ -10,15 +7,14 @@ module Compiler.Parser.Types (
   UnaryOperator (..),
   Factor (..),
   BinaryOperator (..),
+  ParseError (..),
 )
 where
 
 import qualified Compiler.Lexer.Types as LT (Span (..), Token (..))
-import Compiler.Parser.Errors (ParseError (..))
-import qualified Compiler.Types as CT (Literal (..))
 import Control.Monad.State (StateT)
 
-data UnaryOperator = Complement | Negate deriving (Eq, Show)
+data UnaryOperator = Complement | Negate | Not deriving (Eq, Show)
 
 data BinaryOperator
   = Add
@@ -26,21 +22,35 @@ data BinaryOperator
   | Mul
   | Div
   | Mod
-  | And
-  | Or
+  | BitAnd
+  | BitOr
   | Xor
   | LeftShift
   | RightShift
+  | And
+  | Or
+  | Equal
+  | NotEqual
+  | GreaterThan
+  | GreaterOrEqual
+  | LessThan
+  | LessOrEqual
   deriving (Eq, Show, Ord)
 
 data Expr = Factor Factor | Binary BinaryOperator Expr Expr deriving (Eq, Show)
 
-data Factor = Lit CT.Literal | Unary UnaryOperator Factor | Expr Expr deriving (Eq, Show)
+data Factor = Lit Int | Unary UnaryOperator Factor | Expr Expr deriving (Eq, Show)
 
 newtype Stmt = Return Expr deriving (Eq, Show)
 
 data Func = Func {name :: String, body :: Stmt} deriving (Eq, Show)
 
 newtype Program = Program Func deriving (Eq, Show)
+
+data ParseError
+  = UnexpectedToken LT.Token String
+  | UnexpectedEOF String
+  | ParseError String
+  deriving (Show, Eq)
 
 type Parser a = StateT [(LT.Token, LT.Span)] (Either ParseError) a

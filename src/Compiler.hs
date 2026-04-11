@@ -3,8 +3,8 @@ module Compiler (runCompiler) where
 import Compiler.Cli (Options (Options), options)
 import Compiler.Codegen (codegen)
 import Compiler.Codegen.Emit (emit, program)
-import qualified Compiler.IR as IR (lower)
-import qualified Compiler.IR.Lower as IR (lowerProgram)
+import qualified Compiler.IR as IR (transform)
+import qualified Compiler.IR.Transform as IR (transformProgram)
 import qualified Compiler.Lexer as Lexer (lex)
 import qualified Compiler.Parser as Parser (parse)
 import Compiler.Parser.Combinators (parseProgram)
@@ -33,7 +33,7 @@ compile (Options fileName stopAfterLex stopAfterParse stopAfterIR stopAfterCodeg
  where
   lex' p = either (error . show) pure $ Lexer.lex p
   parse' ts = either (error . show) pure $ Parser.parse parseProgram ts
-  ir' p = either (error . show) pure $ IR.lower IR.lowerProgram p
+  ir' p = either (error . show) pure $ IR.transform IR.transformProgram p
   codegen' ast = either (error . show) pure $ codegen ast
   emit' lowered = either (error . show) pure $ emit program lowered
 
