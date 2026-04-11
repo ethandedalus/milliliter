@@ -1,6 +1,6 @@
 module Compiler.Test.Parser.ParseFuncSpec where
 
-import Compiler.Lexer (lex)
+import qualified Compiler.Lexer as Lexer (lex)
 import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseFunc)
 import Compiler.Parser.Types (Expr (..), Factor (..), Func (..), Stmt (..))
@@ -13,10 +13,10 @@ import Prelude hiding (lex)
 type Test = UnitTest Func
 
 simpleMain :: Test
-simpleMain =
-  UnitTest "simple main" "int main(void) { return 0; }" (lex >=> parse parseFunc) $
-    Right $
-      Func "main" (Return (Factor $ Lit (LiteralInt 0)))
+simpleMain = UnitTest "simple main" "int main(void) { return 0; }" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse parseFunc
+  result = Func "main" (Return (Factor $ Lit (LiteralInt 0)))
 
 spec :: Spec
 spec = do

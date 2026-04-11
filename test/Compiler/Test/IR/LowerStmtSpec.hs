@@ -14,14 +14,15 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 type Test = UnitTest [Instruction]
 
 simpleReturn :: Test
-simpleReturn = UnitTest "simple return" "return 42;" run $ Right [Return (Lit (LiteralInt 42))]
+simpleReturn = UnitTest "simple return" "return 42;" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseStmt >=> IR.lower IR.lowerStmt
+  compile = Lexer.lex >=> P.parse P.parseStmt >=> IR.lower IR.lowerStmt
+  result = [Return (Lit (LiteralInt 42))]
 
 returnNestedUnaryExpr :: Test
-returnNestedUnaryExpr = UnitTest "return nested unary expr" "return -~-42;" run $ Right result
+returnNestedUnaryExpr = UnitTest "return nested unary expr" "return -~-42;" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseStmt >=> IR.lower IR.lowerStmt
+  compile = Lexer.lex >=> P.parse P.parseStmt >=> IR.lower IR.lowerStmt
   result =
     [ Unary Negate (Lit $ LiteralInt 42) (Var "tmp.0")
     , Unary Complement (Var "tmp.0") (Var "tmp.1")

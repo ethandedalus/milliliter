@@ -15,34 +15,34 @@ import Prelude hiding (lex)
 type Test = UnitTest ([Instruction], Val)
 
 unitTestLiteralInt :: Test
-unitTestLiteralInt = UnitTest "literal int" "42" run $ Right ([], Lit (LiteralInt 42))
+unitTestLiteralInt = UnitTest "literal int" "42" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  compile = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  result = ([], Lit (LiteralInt 42))
 
 unitTestUnaryOperation :: Test
-unitTestUnaryOperation = UnitTest "unary operation" "~42" run $ Right ([Unary Complement (Lit $ LiteralInt 42) (Var "tmp.0")], Var "tmp.0")
+unitTestUnaryOperation = UnitTest "unary operation" "~42" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  compile = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  result = ([Unary Complement (Lit $ LiteralInt 42) (Var "tmp.0")], Var "tmp.0")
 
 unitTestUnaryOperationParenthesized :: Test
-unitTestUnaryOperationParenthesized =
-  UnitTest "unary operation (parenthesized)" "~(42)" run $
-    Right ([Unary Complement (Lit (LiteralInt 42)) (Var "tmp.0")], Var "tmp.0")
+unitTestUnaryOperationParenthesized = UnitTest "unary operation (parenthesized)" "~(42)" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  compile = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  result = ([Unary Complement (Lit (LiteralInt 42)) (Var "tmp.0")], Var "tmp.0")
 
 unitTestMultipleUnaryOperations :: Test
-unitTestMultipleUnaryOperations =
-  UnitTest "multiple unary operations" "~(-42)" run $
-    Right
-      (
-        [ Unary Negate (Lit (LiteralInt 42)) (Var "tmp.0")
-        , Unary Complement (Var "tmp.0") (Var "tmp.1")
-        ]
-      , Var "tmp.1"
-      )
+unitTestMultipleUnaryOperations = UnitTest "multiple unary operations" "~(-42)" compile $ pure result
  where
-  run = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  compile = Lexer.lex >=> P.parse P.parseFactor >=> IR.lower IR.lowerFactor
+  result =
+    (
+      [ Unary Negate (Lit (LiteralInt 42)) (Var "tmp.0")
+      , Unary Complement (Var "tmp.0") (Var "tmp.1")
+      ]
+    , Var "tmp.1"
+    )
 
 lowerFactorTestCases :: [Test]
 lowerFactorTestCases =

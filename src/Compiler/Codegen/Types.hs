@@ -30,7 +30,7 @@ instance From IR.UnaryOperator UnaryOperator where
   from IR.Complement = Complement
   from IR.Negate = Negate
 
-data Register = AX | DX | R10 | R11 | CX | CL deriving (Eq, Show)
+data Register = AX | DX | R10 | R11 | R12 | R13 | R14 | CX | CL deriving (Eq, Show)
 
 data Operand = Imm Int | Register Register | Pseudo String | Stack Int deriving (Eq, Show)
 

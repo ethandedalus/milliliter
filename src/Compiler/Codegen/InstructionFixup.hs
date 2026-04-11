@@ -19,6 +19,7 @@ lowerInstruction = \case
   (IDiv v@(Imm _)) -> [Mov v (Register R10), IDiv (Register R10)]
   (Binary Add lhs@(Stack _) rhs@(Stack _)) -> [Mov lhs (Register R10), Binary Add (Register R10) rhs]
   (Binary Sub lhs@(Stack _) rhs@(Stack _)) -> [Mov lhs (Register R10), Binary Sub (Register R10) rhs]
+  (Binary op lhs@(Stack _) rhs@(Stack _)) | op `elem` [And, Or, Xor] -> [Mov lhs (Register R12), Binary op (Register R12) rhs]
   (Binary Mul lhs rhs@(Stack _)) -> [Mov rhs (Register R11), Binary Mul lhs (Register R11), Mov (Register R11) rhs]
   other -> [other]
 

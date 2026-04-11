@@ -31,7 +31,7 @@ data Token
   | TSemicolon
   | TComma
   | TSingleLineComment String
-  | TMultiLineComment String
+  | TMultiLineComment [String]
   | TPlus
   | TMinus
   | TPlusPlus
@@ -64,13 +64,13 @@ data SourceLoc = SourceLoc {line :: Int, col :: Int} deriving (Show, Eq)
 
 data Span = Span {start :: SourceLoc, end :: SourceLoc} deriving (Show, Eq)
 
-mkSpan :: SourceLoc -> SourceLoc -> Span
-mkSpan = Span
+mkSpan :: (Int, Int) -> (Int, Int) -> Span
+mkSpan (s1, s2) (e1, e2) = Span (mkSourceLoc s1 s2) (mkSourceLoc e1 e2)
 
 mkSourceLoc :: Int -> Int -> SourceLoc
 mkSourceLoc = SourceLoc
 
 mkNilSpan :: Span
-mkNilSpan = mkSpan (mkSourceLoc 0 0) (mkSourceLoc 0 0)
+mkNilSpan = mkSpan (0, 0) (0, 0)
 
 type Lexer a = StateT (String, SourceLoc) (Either LexError) a

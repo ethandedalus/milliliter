@@ -128,8 +128,8 @@ parseStmt = do
       expr <- parseExpr 0
       consumeToken TSemicolon
       return (Return expr)
-    [] -> throwError (unexpectedEOF "STMT")
-    ((x, _) : _) -> throwError (unexpectedToken x "STMT")
+    [] -> throwError (unexpectedEOF "RETURN")
+    ((x, _) : _) -> throwError (unexpectedToken x "RETURN")
 
 parseFunc :: Parser Func
 parseFunc = do
@@ -145,7 +145,8 @@ parseProgram :: Parser Program
 parseProgram = do
   consumeComments
   func <- parseFunc
+  consumeComments
   stream <- get
   case stream of
     [] -> return $ Program func
-    ((x, _) : _) -> throwError (unexpectedToken x "PROGRAM")
+    ((x, _) : _) -> throwError (unexpectedToken x "EOF")

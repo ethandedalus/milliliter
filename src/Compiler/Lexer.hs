@@ -6,7 +6,16 @@ import Prelude hiding (lex)
 
 import qualified Compiler.Error as CE
 import Compiler.Lexer.Rules (allRules)
-import Compiler.Lexer.Types (LexError (..), Lexer, Rule, RuleMatch (..), SourceLoc (..), Span (..), Token (..), mkSourceLoc, mkSpan)
+import Compiler.Lexer.Types (
+  LexError (..),
+  Lexer,
+  Rule,
+  RuleMatch (..),
+  SourceLoc (..),
+  Span (..),
+  Token (..),
+  mkSourceLoc,
+ )
 import Compiler.Stage (Stage)
 import Control.Monad.Except (throwError)
 import Control.Monad.State (evalStateT, get, put)
@@ -34,9 +43,11 @@ advance rules = do
     [] -> throwError (UnexpectedEOF $ "could not match any token: " ++ program)
     matches -> do
       let (RuleMatch tok res len) = maximumBy (compare `on` matchLen) matches
-      let tokenEndLoc = mkSourceLoc (line loc) (col loc + len)
+      let tokenEndLoc = case tok of
+            (TMultiLineComment c) -> let final = tail c in mkSourceLoc (line loc + length c) (col loc + length final)
+            _ -> mkSourceLoc (line loc) (col loc + len)
       put (res, tokenEndLoc)
-      return (tok, mkSpan loc tokenEndLoc)
+      return (tok, Span loc tokenEndLoc)
 
 runLexer :: Lexer [(Token, Span)]
 runLexer = advanceSourceLoc >> get >>= \(program, _) -> if program == "" then return [] else advance allRules >>= \r -> (r :) <$> runLexer

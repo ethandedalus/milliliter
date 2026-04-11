@@ -2,7 +2,7 @@ module Compiler (runCompiler) where
 
 import Compiler.Cli (Options (Options), options)
 import Compiler.Codegen (codegen)
-import Compiler.Codegen.Emit (emit, emitProgram)
+import Compiler.Codegen.Emit (emit, program)
 import qualified Compiler.IR as IR (lower)
 import qualified Compiler.IR.Lower as IR (lowerProgram)
 import qualified Compiler.Lexer as Lexer (lex)
@@ -16,8 +16,8 @@ import Prelude hiding (lex)
 
 compile :: Options -> IO ()
 compile (Options fileName stopAfterLex stopAfterParse stopAfterIR stopAfterCodegen out) = do
-  program <- readFile fileName
-  ts <- lex' program
+  program' <- readFile fileName
+  ts <- lex' program'
   unless stopAfterLex $ do
     ast <- parse' ts
 
@@ -35,7 +35,7 @@ compile (Options fileName stopAfterLex stopAfterParse stopAfterIR stopAfterCodeg
   parse' ts = either (error . show) pure $ Parser.parse parseProgram ts
   ir' p = either (error . show) pure $ IR.lower IR.lowerProgram p
   codegen' ast = either (error . show) pure $ codegen ast
-  emit' lowered = either (error . show) pure $ emit emitProgram lowered
+  emit' lowered = either (error . show) pure $ emit program lowered
 
 runCompiler :: IO ()
 runCompiler = execParser opts >>= compile

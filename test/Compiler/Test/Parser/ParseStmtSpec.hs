@@ -1,6 +1,6 @@
 module Compiler.Test.Parser.ParseStmtSpec where
 
-import Compiler.Lexer (lex)
+import qualified Compiler.Lexer as Lexer (lex)
 import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseStmt)
 import Compiler.Parser.Types (BinaryOperator (..), Expr (..), Factor (..), Stmt (..), UnaryOperator (..))
@@ -8,30 +8,26 @@ import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
 import Compiler.Types (Literal (..))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Prelude hiding (lex)
 
 type Test = UnitTest Stmt
 
 simpleReturnStmt :: Test
-simpleReturnStmt =
-  UnitTest
-    "simple return stmt"
-    "return 0;"
-    (lex >=> parse parseStmt)
-    $ Right
-    $ Return (Factor (Lit (LiteralInt 0)))
+simpleReturnStmt = UnitTest "simple return stmt" "return 0;" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse parseStmt
+  result = Return (Factor (Lit (LiteralInt 0)))
 
 parenthesizedReturnExpr :: Test
-parenthesizedReturnExpr =
-  UnitTest "parenthesized return expr" "return ~(-(42));" (lex >=> parse parseStmt) $
-    Right $
-      Return (Factor $ Unary Complement (Expr (Factor $ Unary Negate (Expr (Factor (Lit (LiteralInt 42)))))))
+parenthesizedReturnExpr = UnitTest "parenthesized return expr" "return ~(-(42));" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse parseStmt
+  result = Return (Factor $ Unary Complement (Expr (Factor $ Unary Negate (Expr (Factor (Lit (LiteralInt 42)))))))
 
 binaryReturnExpr :: Test
-binaryReturnExpr =
-  UnitTest "binary return expr" "return 1 + 1;" (lex >=> parse parseStmt) $
-    Right $
-      Return (Binary Add (Factor (Lit (LiteralInt 1))) (Factor (Lit (LiteralInt 1))))
+binaryReturnExpr = UnitTest "binary return expr" "return 1 + 1;" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse parseStmt
+  result = Return (Binary Add (Factor (Lit (LiteralInt 1))) (Factor (Lit (LiteralInt 1))))
 
 spec :: Spec
 spec = do

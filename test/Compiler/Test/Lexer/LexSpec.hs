@@ -1,148 +1,88 @@
 module Compiler.Test.Lexer.LexSpec where
 
-import Compiler.Lexer.Rules (
-  lexKeywordOrIdent,
-  lexLBrace,
-  lexLParen,
-  lexLiteral,
-  lexMinus,
-  lexMinusMinus,
-  lexMultiLineComment,
-  lexPlus,
-  lexPlusPlus,
-  lexRBrace,
-  lexRParen,
-  lexSemicolon,
-  lexSingleLineComment,
- )
-import Compiler.Lexer.Types (RuleMatch (..), Token (..))
+import qualified Compiler.Lexer as Lexer (lex)
+import Compiler.Lexer.Types (SourceLoc (..), Span (..), Token (..))
+import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
 import qualified Compiler.Types as CT (Literal (..))
 import Control.Monad (forM_)
+import Data.List (intercalate)
 import Test.Hspec (Spec, describe, it, shouldBe)
+
+lexCase1 :: UnitTest [(Token, Span)]
+lexCase1 =
+  UnitTest "match simple program" "int main(void) { return 0; }" Lexer.lex result
+ where
+  result =
+    pure
+      [ (TInt, Span{start = SourceLoc{line = 1, col = 1}, end = SourceLoc{line = 1, col = 4}})
+      , (TIdent "main", Span{start = SourceLoc{line = 1, col = 5}, end = SourceLoc{line = 1, col = 9}})
+      , (TLParen, Span{start = SourceLoc{line = 1, col = 9}, end = SourceLoc{line = 1, col = 10}})
+      , (TVoid, Span{start = SourceLoc{line = 1, col = 10}, end = SourceLoc{line = 1, col = 14}})
+      , (TRParen, Span{start = SourceLoc{line = 1, col = 14}, end = SourceLoc{line = 1, col = 15}})
+      , (TLBrace, Span{start = SourceLoc{line = 1, col = 16}, end = SourceLoc{line = 1, col = 17}})
+      , (TReturn, Span{start = SourceLoc{line = 1, col = 18}, end = SourceLoc{line = 1, col = 24}})
+      , (TLiteral (CT.LiteralInt 0), Span{start = SourceLoc{line = 1, col = 25}, end = SourceLoc{line = 1, col = 26}})
+      , (TSemicolon, Span{start = SourceLoc{line = 1, col = 26}, end = SourceLoc{line = 1, col = 27}})
+      , (TRBrace, Span{start = SourceLoc{line = 1, col = 28}, end = SourceLoc{line = 1, col = 29}})
+      ]
+
+lexCase2 :: UnitTest [(Token, Span)]
+lexCase2 =
+  UnitTest "match multiline program with comments" program Lexer.lex result
+ where
+  program =
+    intercalate
+      "\n"
+      [ "// this is a program"
+      , "int main(void) {"
+      , "  int a = 80 >> 2 | 1 ^ 5 & 7 << 1;"
+      , "  return a;"
+      , "}"
+      , "// trailing comment"
+      , "/* multiline"
+      , " * trailing"
+      , " * comment"
+      , " */"
+      ]
+  result =
+    pure
+      [ (TSingleLineComment "// this is a program", Span{start = SourceLoc{line = 1, col = 1}, end = SourceLoc{line = 1, col = 21}})
+      , (TInt, Span{start = SourceLoc{line = 2, col = 1}, end = SourceLoc{line = 2, col = 4}})
+      , (TIdent "main", Span{start = SourceLoc{line = 2, col = 5}, end = SourceLoc{line = 2, col = 9}})
+      , (TLParen, Span{start = SourceLoc{line = 2, col = 9}, end = SourceLoc{line = 2, col = 10}})
+      , (TVoid, Span{start = SourceLoc{line = 2, col = 10}, end = SourceLoc{line = 2, col = 14}})
+      , (TRParen, Span{start = SourceLoc{line = 2, col = 14}, end = SourceLoc{line = 2, col = 15}})
+      , (TLBrace, Span{start = SourceLoc{line = 2, col = 16}, end = SourceLoc{line = 2, col = 17}})
+      , (TInt, Span{start = SourceLoc{line = 3, col = 3}, end = SourceLoc{line = 3, col = 6}})
+      , (TIdent "a", Span{start = SourceLoc{line = 3, col = 7}, end = SourceLoc{line = 3, col = 8}})
+      , (TEq, Span{start = SourceLoc{line = 3, col = 9}, end = SourceLoc{line = 3, col = 10}})
+      , (TLiteral (CT.LiteralInt 80), Span{start = SourceLoc{line = 3, col = 11}, end = SourceLoc{line = 3, col = 13}})
+      , (TRShift, Span{start = SourceLoc{line = 3, col = 14}, end = SourceLoc{line = 3, col = 16}})
+      , (TLiteral (CT.LiteralInt 2), Span{start = SourceLoc{line = 3, col = 17}, end = SourceLoc{line = 3, col = 18}})
+      , (TOr, Span{start = SourceLoc{line = 3, col = 19}, end = SourceLoc{line = 3, col = 20}})
+      , (TLiteral (CT.LiteralInt 1), Span{start = SourceLoc{line = 3, col = 21}, end = SourceLoc{line = 3, col = 22}})
+      , (TXor, Span{start = SourceLoc{line = 3, col = 23}, end = SourceLoc{line = 3, col = 24}})
+      , (TLiteral (CT.LiteralInt 5), Span{start = SourceLoc{line = 3, col = 25}, end = SourceLoc{line = 3, col = 26}})
+      , (TAnd, Span{start = SourceLoc{line = 3, col = 27}, end = SourceLoc{line = 3, col = 28}})
+      , (TLiteral (CT.LiteralInt 7), Span{start = SourceLoc{line = 3, col = 29}, end = SourceLoc{line = 3, col = 30}})
+      , (TLShift, Span{start = SourceLoc{line = 3, col = 31}, end = SourceLoc{line = 3, col = 33}})
+      , (TLiteral (CT.LiteralInt 1), Span{start = SourceLoc{line = 3, col = 34}, end = SourceLoc{line = 3, col = 35}})
+      , (TSemicolon, Span{start = SourceLoc{line = 3, col = 35}, end = SourceLoc{line = 3, col = 36}})
+      , (TReturn, Span{start = SourceLoc{line = 4, col = 3}, end = SourceLoc{line = 4, col = 9}})
+      , (TIdent "a", Span{start = SourceLoc{line = 4, col = 10}, end = SourceLoc{line = 4, col = 11}})
+      , (TSemicolon, Span{start = SourceLoc{line = 4, col = 11}, end = SourceLoc{line = 4, col = 12}})
+      , (TRBrace, Span{start = SourceLoc{line = 5, col = 1}, end = SourceLoc{line = 5, col = 2}})
+      , (TSingleLineComment "// trailing comment", Span{start = SourceLoc{line = 6, col = 1}, end = SourceLoc{line = 6, col = 20}})
+      , (TMultiLineComment ["/* multiline", " * trailing", " * comment", " */"], Span{start = SourceLoc{line = 7, col = 1}, end = SourceLoc{line = 11, col = 4}})
+      ]
 
 spec :: Spec
 spec = do
-  describe "lexKeywordOrIdent" $ do
+  describe "lexer" $ do
     let cases =
-          [ ("match keyword `int`", "int main", Just (RuleMatch TInt " main" 3))
-          , ("match keyword `float`", "float x = 1.0;", Just (RuleMatch TFloat " x = 1.0;" 5))
-          , ("match keyword `void`", "void func1(){}", Just (RuleMatch TVoid " func1(){}" 4))
-          , ("match keyword `return`", "return 0;", Just (RuleMatch TReturn " 0;" 6))
-          , ("match identifier `variableName`", "variableName = 42;", Just (RuleMatch (TIdent "variableName") " = 42;" 12))
-          , ("match identifier `variable_name`", "variable_name = 42;", Just (RuleMatch (TIdent "variable_name") " = 42;" 13))
-          , ("match identifier `variableName1`", "variableName1 = 42;", Just (RuleMatch (TIdent "variableName1") " = 42;" 13))
-          , ("fail to match invalid identifier `1variable`", "1variable", Nothing)
+          [ lexCase1
+          , lexCase2
           ]
 
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexKeywordOrIdent input `shouldBe` expected
-
-  describe "lexLiteral" $ do
-    let cases =
-          [ ("match literal int", "5;", Just (RuleMatch (TLiteral (CT.LiteralInt 5)) ";" 1))
-          , ("match literal string", "\"hello, world\";", Just (RuleMatch (TLiteral (CT.LiteralString "hello, world")) ";" 14))
-          , ("match literal float", "5.0;", Just (RuleMatch (TLiteral (CT.LiteralFloat 5.0)) ";" 3))
-          , ("match literal bool", "true;", Just (RuleMatch (TLiteral (CT.LiteralBool True)) ";" 4))
-          , ("fail to match [1]", "return 0;", Nothing)
-          ]
-
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexLiteral input `shouldBe` expected
-
-  describe "lexLParen" $ do
-    let cases =
-          [ ("match left parenthesis [1]", "( void )", Just (RuleMatch TLParen " void )" 1))
-          , ("match left parenthesis [2]", "(\nint arg1\n)", Just (RuleMatch TLParen "\nint arg1\n)" 1))
-          , ("fail to match left brace [1]", "{ return 0; }", Nothing)
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexLParen input `shouldBe` expected
-
-  describe "lexRParen" $ do
-    let cases =
-          [ ("match right parenthesis [1]", ") {", Just (RuleMatch TRParen " {" 1))
-          , ("match right parenthesis [2]", ")\n{", Just (RuleMatch TRParen "\n{" 1))
-          , ("fail to match identifier [1]", "abc)", Nothing)
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexRParen input `shouldBe` expected
-
-  describe "lexLBrace" $ do
-    let cases =
-          [ ("match left brace [1]", "{return 0;}", Just (RuleMatch TLBrace "return 0;}" 1))
-          , ("match left brace [2]", "{ return 0; }", Just (RuleMatch TLBrace " return 0; }" 1))
-          , ("fail to match keyword `return`", "return 0;", Nothing)
-          ]
-
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexLBrace input `shouldBe` expected
-
-  describe "lexRBrace" $ do
-    let cases =
-          [ ("match right brace [1]", "}", Just (RuleMatch TRBrace "" 1))
-          , ("match right brace [2]", "}\n\n int main() {}", Just (RuleMatch TRBrace "\n\n int main() {}" 1))
-          , ("fail to match keyword `int`", "int main() {}", Nothing)
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexRBrace input `shouldBe` expected
-
-  describe "lexSemicolon" $ do
-    let cases =
-          [ ("match semicolon [1]", ";", Just (RuleMatch TSemicolon "" 1))
-          , ("match semicolon [2]", ";\nreturn a;", Just (RuleMatch TSemicolon "\nreturn a;" 1))
-          , ("fail to match keyword `return`", "return 0;", Nothing)
-          ]
-
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexSemicolon input `shouldBe` expected
-
-  describe "lexSingleLineComment" $ do
-    let cases =
-          [ ("match single line comment [1]", "// @ingroup Physics", Just (RuleMatch (TSingleLineComment "// @ingroup Physics") "" 19))
-          , ("match single line comment [2]", "//    comment\n//comment\n//comment", Just (RuleMatch (TSingleLineComment "//    comment") "\n//comment\n//comment" 13))
-          , ("fail to match multiline comment", "/* some comment here */", Nothing)
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexSingleLineComment input `shouldBe` expected
-
-  describe "lexMultiLineComment" $ do
-    let cases =
-          [ ("match multiline comment [1]", "/*multiline comment*///another comment", Just (RuleMatch (TMultiLineComment "/*multiline comment*/") "//another comment" 21))
-          , ("match multiline comment [2]", "/**some  \ncomment  here  */", Just (RuleMatch (TMultiLineComment "/**some  \ncomment  here  */") "" 27))
-          , ("fail to match unclosed multiline comment [1]", "/* *", Nothing)
-          , ("fail to match unclosed multiline comment [2]", "/* /", Nothing)
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexMultiLineComment input `shouldBe` expected
-
-  describe "lexPlus" $ do
-    let cases =
-          [ ("match plus [1]", "+ 1;", Just (RuleMatch TPlus " 1;" 1))
-          , ("match plus [2]", "+10; return a;", Just (RuleMatch TPlus "10; return a;" 1))
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexPlus input `shouldBe` expected
-
-  describe "lexPlusPlus" $ do
-    let cases =
-          [ ("match ++ [1]", "++1;", Just (RuleMatch TPlusPlus "1;" 2))
-          , ("match ++ [2]", "++10; return a;", Just (RuleMatch TPlusPlus "10; return a;" 2))
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexPlusPlus input `shouldBe` expected
-
-  describe "lexMinus" $ do
-    let cases =
-          [ ("match - [1]", "- 1;", Just (RuleMatch TMinus " 1;" 1))
-          , ("match - [2]", "-10; return a;", Just (RuleMatch TMinus "10; return a;" 1))
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexMinus input `shouldBe` expected
-
-  describe "lexMinusMinus" $ do
-    let cases =
-          [ ("match -- [1]", "--1;", Just (RuleMatch TMinusMinus "1;" 2))
-          , ("match -- [2]", "--10; return a;", Just (RuleMatch TMinusMinus "10; return a;" 2))
-          ]
-    forM_ cases $ \(name, input, expected) ->
-      it ("case: " ++ name) $ lexMinusMinus input `shouldBe` expected
+    forM_ cases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult

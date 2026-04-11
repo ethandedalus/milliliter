@@ -165,9 +165,14 @@ lexSingleLineComment stream = case stream =~ "^//.*" :: (String, String, String)
   ("", match, rest) -> Just $ RuleMatch (TSingleLineComment match) rest (length match)
   _ -> Nothing
 
+splitOn :: Char -> String -> [String]
+splitOn c s = case break (== c) s of
+  (a, []) -> [a]
+  (a, _ : rest) -> a : splitOn c rest
+
 lexMultiLineComment :: Rule
 lexMultiLineComment stream = case makeRegexOpts defaultCompOpt{multiline = False} defaultExecOpt "/\\*.*\\*/" `matchM` stream :: Maybe (String, String, String) of
-  Just ("", match, rest) -> Just $ RuleMatch (TMultiLineComment match) rest (length match)
+  Just ("", match, rest) -> Just $ RuleMatch (TMultiLineComment (splitOn '\n' match)) rest (length match)
   _ -> Nothing
 
 lexAnd :: Rule
