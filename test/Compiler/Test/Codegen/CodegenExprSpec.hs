@@ -44,6 +44,12 @@ spec = do
     forM_ shortCircuitingExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
       run input `shouldBe` expectedResult
 
+  describe "compound" $ do
+    let testCases = [compound1, compound2]
+
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
+
 shl1 :: UnitTest [Instruction]
 shl1 = UnitTest "return shl expression" "(2 * 5) << 2" compile result
  where
@@ -233,4 +239,25 @@ lowerGreaterThan1 = UnitTest "relational > (1)" "2 > 1" compile $ pure result
     , Cmp (Imm 1) (Register R11) -- cmpl $1, %r11d
     , Mov (Imm 0) (Stack (-4)) -- movl $0, -4(%rbp)
     , SetCC CondG (Stack (-4)) -- setg, -4(%rbp)
+    ]
+
+compound1 :: UnitTest [Instruction]
+compound1 = UnitTest "compound assignment" "a += b" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
+  result =
+    [ Mov (Stack (-4)) (Register R10) -- movl -4(%rbp), %r10d
+    , Mov (Register R10) (Stack (-4)) -- movl %r10d,
+    , Mov (Stack (-8)) (Register R10)
+    , Binary Add (Register R10) (Stack (-4))
+    ]
+
+compound2 :: UnitTest [Instruction]
+compound2 = UnitTest "compound assignment" "a += 1" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr >=> (return . fst) >=> lower
+  result =
+    [ Mov (Stack (-4)) (Register R10)
+    , Mov (Register R10) (Stack (-4))
+    , Binary Add (Imm 1) (Stack (-4))
     ]

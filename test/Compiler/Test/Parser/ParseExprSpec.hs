@@ -13,21 +13,27 @@ type Test = UnitTest Expr
 spec :: Spec
 spec = do
   describe "parse literal expressions" $ do
-    let parseLiteralTestCases = [literalInt]
+    let testCases = [literalInt]
 
-    forM_ parseLiteralTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
       run input `shouldBe` expectedResult
 
   describe "parse unary expressions" $ do
-    let parseUnaryExpressionTestCases = [unaryFactor1, unaryFactor2]
+    let testCases = [unaryFactor1, unaryFactor2]
 
-    forM_ parseUnaryExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
       run input `shouldBe` expectedResult
 
   describe "parse binary expressions" $ do
-    let parseBinaryExpressionTestCases = [simpleAddition, arith1, arithWithGrouping1, arithWithGrouping2]
+    let testCases = [simpleAddition, arith1, arithWithGrouping1, arithWithGrouping2, bitwise1]
 
-    forM_ parseBinaryExpressionTestCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
+
+  describe "parse assignment expressions" $ do
+    let testCases = [assignment1, assignment2]
+
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
       run input `shouldBe` expectedResult
 
 literalInt :: Test
@@ -87,3 +93,25 @@ arithWithGrouping2 = UnitTest "arithmetic with grouping (2)" "10 + 5 * (2 + 5) -
           (Binary Mul (Factor (Lit 5)) (Factor (Expr (Binary Add (Factor (Lit 2)) (Factor (Lit 5))))))
       )
       (Factor (Lit 3))
+
+bitwise1 :: Test
+bitwise1 = UnitTest "bitwise precedence" "1 << 2 & 3 | 4 >> 5 ^ 6" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse (parseExpr 0)
+  result =
+    Binary
+      BitOr
+      (Binary BitAnd (Binary LeftShift (Factor (Lit 1)) (Factor (Lit 2))) (Factor (Lit 3)))
+      (Binary Xor (Binary RightShift (Factor (Lit 4)) (Factor (Lit 5))) (Factor (Lit 6)))
+
+assignment1 :: Test
+assignment1 = UnitTest "simple assignment" "a = b" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse (parseExpr 0)
+  result = Assign (Factor (Ident "a")) (Factor (Ident "b"))
+
+assignment2 :: Test
+assignment2 = UnitTest "compound assignment" "a = b = c = d" compile $ pure result
+ where
+  compile = Lexer.lex >=> parse (parseExpr 0)
+  result = Assign (Factor (Ident "a")) (Assign (Factor (Ident "b")) (Assign (Factor (Ident "c")) (Factor (Ident "d"))))

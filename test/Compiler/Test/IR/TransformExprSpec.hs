@@ -13,15 +13,22 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 type Test = UnitTest ([Instruction], Val)
 
 spec :: Spec
-spec = describe "transform binary expressions" $ do
-  let testCases =
-        [ transformBinaryAddition1
-        , transformBinaryAddition2
-        , transformArithmetic1
-        ]
+spec = do
+  describe "transform binary expressions" $ do
+    let testCases =
+          [ transformBinaryAddition1
+          , transformBinaryAddition2
+          , transformArithmetic1
+          ]
 
-  forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
-    run input `shouldBe` expectedResult
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
+
+  describe "transform compound expressions" $ do
+    let testCases = [transformCompound1]
+
+    forM_ testCases $ \(UnitTest caseName input run expectedResult) -> it ("case: " ++ caseName) $ do
+      run input `shouldBe` expectedResult
 
 transformBinaryAddition1 :: Test
 transformBinaryAddition1 = UnitTest "simple binary addition" "1 + 1" compile $ pure result
@@ -48,3 +55,9 @@ transformArithmetic1 = UnitTest "general arithmetic expression (1)" "1 + 2 * (3 
       ]
     , Var "tmp.3"
     )
+
+transformCompound1 :: Test
+transformCompound1 = UnitTest "compound assignment" "a += b" compile $ pure result
+ where
+  compile = Lexer.lex >=> P.parse (P.parseExpr 0) >=> IR.transform IR.transformExpr
+  result = ([Binary Add (Var "a") (Var "b") (Var "a")], Var "a")

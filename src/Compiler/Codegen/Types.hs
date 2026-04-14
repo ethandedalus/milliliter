@@ -3,8 +3,8 @@
 
 module Compiler.Codegen.Types where
 
-import Compiler.Class (ConversionError (..), From (..))
-import qualified Compiler.IR.Types as IR (Instruction, UnaryOperator (..))
+import Compiler.Class (ConversionError (..))
+import qualified Compiler.IR.Types as IR (Instruction, UnaryOperator)
 import Control.Lens
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
@@ -17,11 +17,6 @@ data UnaryOperator = Complement | Negate | Not deriving (Eq, Show)
 data BinaryOperator = Add | Sub | Mul | LeftShift | RightShift | BitAnd | Xor | BitOr deriving (Eq, Show)
 
 data CondCode = CondE | CondNE | CondG | CondGE | CondL | CondLE deriving (Eq, Show)
-
-instance From IR.UnaryOperator UnaryOperator where
-  from IR.Complement = Complement
-  from IR.Negate = Negate
-  from IR.Not = Not
 
 data Register
   = AX
@@ -58,6 +53,7 @@ newtype Program = Program Func deriving (Eq, Show)
 data CodegenError
   = IllegalOperand Operand String
   | UnlowerableInstruction IR.Instruction String
+  | IllegalUnaryOperator IR.UnaryOperator String
   | IllegalInstruction Instruction String
   | ConvertBinaryOperator ConversionError
   | CodegenError String

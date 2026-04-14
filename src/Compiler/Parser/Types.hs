@@ -8,13 +8,23 @@ module Compiler.Parser.Types (
   Factor (..),
   BinaryOperator (..),
   ParseError (..),
+  BlockItem (..),
+  Decl (..),
 )
 where
 
 import qualified Compiler.Lexer.Types as LT (Span (..), Token (..))
 import Control.Monad.State (StateT)
 
-data UnaryOperator = Complement | Negate | Not deriving (Eq, Show)
+data UnaryOperator
+  = Complement
+  | Negate
+  | Not
+  | PrefixIncrement
+  | PostfixIncrement
+  | PrefixDecrement
+  | PostfixDecrement
+  deriving (Eq, Show)
 
 data BinaryOperator
   = Add
@@ -35,15 +45,40 @@ data BinaryOperator
   | GreaterOrEqual
   | LessThan
   | LessOrEqual
+  | Assignment
+  | AddAssign
+  | SubAssign
+  | MulAssign
+  | DivAssign
+  | ModAssign
+  | ShlAssign
+  | ShrAssign
+  | AndAssign
+  | OrAssign
+  | XorAssign
   deriving (Eq, Show, Ord)
 
-data Expr = Factor Factor | Binary BinaryOperator Expr Expr deriving (Eq, Show)
+data Expr
+  = Var String
+  | Factor Factor
+  | Binary BinaryOperator Expr Expr
+  | Assign Expr Expr
+  | CompoundAssign BinaryOperator Expr Expr
+  deriving (Eq, Show)
 
-data Factor = Lit Int | Unary UnaryOperator Factor | Expr Expr deriving (Eq, Show)
+data Factor = Lit Int | Unary UnaryOperator Factor | Expr Expr | Ident String deriving (Eq, Show)
 
-newtype Stmt = Return Expr deriving (Eq, Show)
+data Stmt
+  = Return Expr
+  | ExprS Expr
+  | Null
+  deriving (Eq, Show)
 
-data Func = Func {name :: String, body :: Stmt} deriving (Eq, Show)
+data Decl = Decl String (Maybe Expr) deriving (Eq, Show)
+
+data BlockItem = S Stmt | D Decl deriving (Eq, Show)
+
+data Func = Func {name :: String, body :: [BlockItem]} deriving (Eq, Show)
 
 newtype Program = Program Func deriving (Eq, Show)
 

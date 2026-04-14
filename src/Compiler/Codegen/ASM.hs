@@ -8,7 +8,6 @@ module Compiler.Codegen.ASM (
 )
 where
 
-import Compiler.Class (from)
 import Compiler.Codegen.Types (
   BinaryOperator (..),
   CodegenError (..),
@@ -18,6 +17,7 @@ import Compiler.Codegen.Types (
   Operand (..),
   Program (..),
   Register (..),
+  UnaryOperator (..),
  )
 import qualified Compiler.Error as CE (CompileError (CodegenError))
 import qualified Compiler.IR.Types as IR (
@@ -51,11 +51,20 @@ lowerUnaryNot src dst = do
   dst' <- lowerVal dst
   return [Cmp (Imm 0) src', Mov (Imm 0) dst', SetCC CondE dst']
 
+lowerUnaryOp :: IR.UnaryOperator -> Either CodegenError UnaryOperator
+lowerUnaryOp op = do
+  case op of
+    IR.Negate -> return Negate
+    IR.Not -> return Not
+    IR.Complement -> return Complement
+    _ -> throwError (IllegalUnaryOperator op "ICE: the IR pass should've lowered all instances of this operator")
+
 lowerUnary :: IR.UnaryOperator -> IR.Val -> IR.Val -> Either CodegenError [Instruction]
 lowerUnary op src dst = do
+  op' <- lowerUnaryOp op
   src' <- lowerVal src
   dst' <- lowerVal dst
-  return [Mov src' dst', Unary (from op) dst']
+  return [Mov src' dst', Unary op' dst']
 
 lowerDiv :: IR.Val -> IR.Val -> IR.Val -> Either CodegenError [Instruction]
 lowerDiv src1 src2 dst = do

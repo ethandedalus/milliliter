@@ -12,6 +12,7 @@ parser = ArgumentParser()
 parser.add_argument("file")
 parser.add_argument("-l", "--lex", action="store_true")
 parser.add_argument("-p", "--parse", action="store_true")
+parser.add_argument("-v", "--validate", action="store_true")
 parser.add_argument("-t", "--tacky", action="store_true")
 parser.add_argument("-c", "--codegen", action="store_true")
 args = parser.parse_args()
@@ -26,6 +27,8 @@ if args.lex:
     flags.append("--lex")
 if args.parse:
     flags.append("--parse")
+if args.validate:
+    flags.append("--validate")
 if args.tacky:
     flags.append("--tacky")
 if args.codegen:
@@ -50,7 +53,13 @@ with (
         if result.returncode != 0:
             sys.exit(result.returncode)
 
-        if not args.codegen and not args.lex and not args.parse and not args.tacky:
+        if (
+            not args.codegen
+            and not args.lex
+            and not args.parse
+            and not args.tacky
+            and not args.validate
+        ):
             subprocess.run(
                 ["gcc", asm_path, "-o", os.path.join(outdir, outname)],
                 check=True,

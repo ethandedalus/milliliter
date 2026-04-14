@@ -54,11 +54,11 @@ lowerCmp lhs rhs = do
 lowerInstruction :: Instruction -> Transform PseudoRegistersPassState Instruction
 lowerInstruction = \case
   (Mov lhs rhs) -> lowerMov lhs rhs
-  (Unary operator operand) -> lowerVal operand >>= \operand' -> return $ Unary operator operand'
+  (Unary operator operand) -> Unary operator <$> lowerVal operand
   (Binary operator lhs rhs) -> lowerBinary operator lhs rhs
-  (IDiv operand) -> lowerVal operand >>= \operand' -> return $ IDiv operand'
+  (IDiv operand) -> IDiv <$> lowerVal operand
   (Cmp lhs rhs) -> lowerCmp lhs rhs
-  (SetCC code operand) -> lowerVal operand >>= \operand' -> return $ SetCC code operand'
+  (SetCC code operand) -> SetCC code <$> lowerVal operand
   other -> return other
 
 lowerInstructions :: [Instruction] -> Transform PseudoRegistersPassState [Instruction]

@@ -18,7 +18,7 @@ name: milliliter
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version: 0.1.4.0
+version: 0.1.5.0
 -- A short (one-line) description of the package.
 -- synopsis:
 -- A longer description of the package.
@@ -68,7 +68,9 @@ library
     Compiler.Parser
     Compiler.Parser.Combinators
     Compiler.Parser.Types
+    Compiler.SemanticAnalysis
     Compiler.SemanticAnalysis.Types
+    Compiler.SemanticAnalysis.VariableResolution
     Compiler.Stage
     Compiler.Types
 
@@ -127,10 +129,12 @@ test-suite milliliter-test
     Compiler.Test.IR.TransformFactorSpec
     Compiler.Test.IR.TransformStmtSpec
     Compiler.Test.Lexer.LexSpec
+    Compiler.Test.Parser.ParseDeclSpec
     Compiler.Test.Parser.ParseExprSpec
     Compiler.Test.Parser.ParseFactorSpec
     Compiler.Test.Parser.ParseFuncSpec
     Compiler.Test.Parser.ParseStmtSpec
+    Compiler.Test.SemanticAnalysis.VariableResolutionSpec
     Compiler.Test.Shared.UnitTest
 
   -- LANGUAGE extensions used by modules in this package.
@@ -144,6 +148,7 @@ test-suite milliliter-test
   -- Test dependencies.
   build-depends:
     base ^>=4.18.3.0,
+    containers,
     hspec ^>=2.11.17,
     milliliter,
     mtl ^>=2.3.1,

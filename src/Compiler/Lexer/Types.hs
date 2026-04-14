@@ -52,6 +52,7 @@ data Token
   | TMinusEq
   | TStarEq
   | TDivEq
+  | TModEq
   | TEqEq
   | TNotEq
   | TAndAnd
@@ -61,6 +62,11 @@ data Token
   | TGT
   | TLT
   | TComplement
+  | TAndEq
+  | TOrEq
+  | TLShiftEq
+  | TRShiftEq
+  | TXorEq
   deriving (Show, Eq)
 
 tokenName :: Token -> String
@@ -108,6 +114,12 @@ tokenName = \case
   TGT -> "GT"
   TLT -> "LT"
   TComplement -> "TILDE"
+  TModEq -> "MOD_EQ"
+  TAndEq -> "AND_EQ"
+  TOrEq -> "OR_EQ"
+  TLShiftEq -> "LEFT_SHIFT_EQ"
+  TRShiftEq -> "RIGHT_SHIFT_EQ"
+  TXorEq -> "XOR_EQ"
 
 data RuleMatch = RuleMatch {matchToken :: Token, matchRest :: String, matchLen :: Int} deriving (Show, Eq)
 

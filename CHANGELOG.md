@@ -36,5 +36,10 @@
 * Restructure the compiler so that stages are composable via `>=>`, making for much easier testing
 * Refactor compiler errors
 
+## 0.1.5.0 -- 2026-04-16
+
+* Implement support for bitwise operators
+* Allow for local variables
+* Implement postfix and prefix increment and decrement as well as compound assignment for all arithmetic and bitwise operators
 
 

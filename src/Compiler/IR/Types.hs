@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -22,12 +23,25 @@ import Control.Monad.State (StateT)
 
 data Val = Lit Int | Var String deriving (Show, Eq)
 
-data UnaryOperator = Complement | Negate | Not deriving (Eq, Show)
+data UnaryOperator
+  = Complement
+  | Negate
+  | Not
+  | PrefixIncrement
+  | PostfixIncrement
+  | PrefixDecrement
+  | PostfixDecrement
+  deriving (Eq, Show)
 
 instance From PT.UnaryOperator UnaryOperator where
-  from PT.Complement = Complement
-  from PT.Negate = Negate
-  from PT.Not = Not
+  from = \case
+    PT.Complement -> Complement
+    PT.Negate -> Negate
+    PT.Not -> Not
+    PT.PrefixIncrement -> PrefixIncrement
+    PT.PostfixIncrement -> PostfixIncrement
+    PT.PrefixDecrement -> PrefixIncrement
+    PT.PostfixDecrement -> PostfixDecrement
 
 data BinaryOperator
   = Add
@@ -48,27 +62,50 @@ data BinaryOperator
   | LessOrEqual
   | And
   | Or
+  | Assignment
+  | AddAssign
+  | SubAssign
+  | MulAssign
+  | DivAssign
+  | ModAssign
+  | AndAssign
+  | OrAssign
+  | XorAssign
+  | ShlAssign
+  | ShrAssign
   deriving (Eq, Show)
 
 instance From PT.BinaryOperator BinaryOperator where
-  from PT.Add = Add
-  from PT.Sub = Sub
-  from PT.Mul = Mul
-  from PT.Div = Div
-  from PT.Mod = Mod
-  from PT.LeftShift = LeftShift
-  from PT.RightShift = RightShift
-  from PT.BitAnd = BitAnd
-  from PT.Xor = Xor
-  from PT.BitOr = BitOr
-  from PT.Equal = Equal
-  from PT.NotEqual = NotEqual
-  from PT.GreaterThan = GreaterThan
-  from PT.GreaterOrEqual = GreaterOrEqual
-  from PT.LessThan = LessThan
-  from PT.LessOrEqual = LessOrEqual
-  from PT.And = And
-  from PT.Or = Or
+  from = \case
+    PT.Add -> Add
+    PT.Sub -> Sub
+    PT.Mul -> Mul
+    PT.Div -> Div
+    PT.Mod -> Mod
+    PT.LeftShift -> LeftShift
+    PT.RightShift -> RightShift
+    PT.BitAnd -> BitAnd
+    PT.Xor -> Xor
+    PT.BitOr -> BitOr
+    PT.Equal -> Equal
+    PT.NotEqual -> NotEqual
+    PT.GreaterThan -> GreaterThan
+    PT.GreaterOrEqual -> GreaterOrEqual
+    PT.LessThan -> LessThan
+    PT.LessOrEqual -> LessOrEqual
+    PT.And -> And
+    PT.Or -> Or
+    PT.Assignment -> Assignment
+    PT.AddAssign -> AddAssign
+    PT.SubAssign -> SubAssign
+    PT.MulAssign -> MulAssign
+    PT.DivAssign -> DivAssign
+    PT.ModAssign -> ModAssign
+    PT.AndAssign -> AndAssign
+    PT.OrAssign -> OrAssign
+    PT.XorAssign -> XorAssign
+    PT.ShlAssign -> ShlAssign
+    PT.ShrAssign -> ShrAssign
 
 data Instruction
   = Return Val
