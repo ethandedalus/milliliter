@@ -1,14 +1,14 @@
 module Compiler.Test.Parser.ParseStmtSpec where
 
+import Compiler.AST
 import qualified Compiler.Lexer as Lexer (lex)
 import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseStmt)
-import Compiler.Parser.Types (BinaryOperator (..), Expr (..), Factor (..), Stmt (..), UnaryOperator (..))
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-type Test = UnitTest Stmt
+type Test = UnitTest ParsedStmt
 
 spec :: Spec
 spec = do
@@ -38,19 +38,19 @@ returnSimple :: Test
 returnSimple = UnitTest "simple return stmt" "return 0;" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = Return (Factor (Lit 0))
+  result = Return (Lit 0)
 
 returnParenthesizedExpr :: Test
 returnParenthesizedExpr = UnitTest "parenthesized return expr" "return ~(-(42));" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = Return (Factor $ Unary Complement (Expr (Factor $ Unary Negate (Expr (Factor (Lit 42))))))
+  result = Return (Unary Complement (Unary Negate (Lit 42)))
 
 returnBinaryExpr :: Test
 returnBinaryExpr = UnitTest "binary return expr" "return 1 + 1;" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = Return (Binary Add (Factor (Lit 1)) (Factor (Lit 1)))
+  result = Return (Binary Add (Lit 1) (Lit 1))
 
 emptyStmt :: Test
 emptyStmt = UnitTest "empty stmt" ";" compile $ pure result
@@ -62,10 +62,10 @@ exprStmt1 :: Test
 exprStmt1 = UnitTest "expression statement (1)" "a = 5;" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = ExprS (Assign (Factor (Ident "a")) (Factor (Lit 5)))
+  result = ExprS (Assign (VarParsed "a") (Lit 5))
 
 exprStmt2 :: Test
 exprStmt2 = UnitTest "expression statement (2)" "~(a = 1);" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = ExprS (Factor (Unary Complement (Expr (Assign (Factor (Ident "a")) (Factor (Lit 1))))))
+  result = ExprS (Unary Complement (Assign (VarParsed "a") (Lit 1)))

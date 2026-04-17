@@ -1,14 +1,14 @@
 <program> ::= <function>
-<function> ::= int <identifier> "(" "void" ")" "{" { <block-item> } "}"
+<function> ::= int <identifier> "(" "void" ")" <block>
 <block-item> ::= <statement> | <declaration>
 <declaration> ::= "int" <identifier> ["=" <expr>]  ";"
-<statement> ::= return <expr> ";" | <exp> ";" | ";"
+<statement> ::= return <expr> ";" | <exp> ";" | if "(" <expr> ")" <statement> ["else" <statement>] | ";" | <block>
 <factor> 
     ::= <identifier> 
       | <literal> 
       | <unary-op> <factor> 
       | "(" <expr> ")"
-<expr> ::= <factor> | <expr> <binary-op> <expr>
+<expr> ::= <factor> | <expr> <binary-op> <expr> | <expr> "?" <expr> ":" <expr>
 <identifier> ::= ? an identifier ?
 <literal> ::= ? a literal value ?
 <unary-op> ::= "~" | "-" | "!"
@@ -31,3 +31,4 @@
       | "<" 
       | "<=" 
       | ">="
+<block> ::= "{" { <block-item> } "}"

@@ -1,4 +1,4 @@
-module Compiler.Parser (parse) where
+module Compiler.Parser where
 
 import qualified Compiler.Error as CE (CompileError (ParseError))
 import Compiler.Lexer.Types (Span, Token)

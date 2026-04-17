@@ -1,96 +1,115 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Compiler.SemanticAnalysis.VariableResolution where
 
-import qualified Compiler.Parser.Types as PT
+import Compiler.AST
+import Compiler.Pass
 import Compiler.SemanticAnalysis.Types
 import Control.Lens
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
+import Control.Monad.Reader (local)
+import Data.Foldable (asum)
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
+
+withScope :: ScopeID -> Transform a -> Transform a
+withScope sid = local (scopeStack %~ (sid :))
 
 makeTemporary :: String -> Transform String
-makeTemporary name = do
-  counter <- varSeq <<%= (+ 1)
-  return $ name ++ "$" ++ show counter
+makeTemporary n = do
+  counter <- varSeq <<+= 1
+  prefix <- maybe "" (++ "@") <$> view func
+  return $ prefix ++ n ++ "$" ++ show counter
 
-resolveFactor :: PT.Factor -> Transform PT.Factor
-resolveFactor factor = do
+resolveVar :: String -> Transform (Expr Resolved)
+resolveVar ident = do
+  stack <- view scopeStack
   vars <- use varMap
-  case factor of
-    (PT.Ident ident) -> case Map.lookup ident vars of
-      Nothing -> throwError (UndefinedVariable ident)
-      (Just ident') -> return $ PT.Ident ident'
-    (PT.Unary PT.PrefixIncrement operand)
-      | isLValue operand -> PT.Unary PT.PrefixIncrement <$> resolveFactor operand
-      | otherwise -> throwError InvalidLValue
-    (PT.Unary PT.PostfixIncrement operand)
-      | isLValue operand -> PT.Unary PT.PostfixIncrement <$> resolveFactor operand
-      | otherwise -> throwError InvalidLValue
-    (PT.Unary PT.PrefixDecrement operand)
-      | isLValue operand -> PT.Unary PT.PrefixDecrement <$> resolveFactor operand
-      | otherwise -> throwError InvalidLValue
-    (PT.Unary PT.PostfixDecrement operand)
-      | isLValue operand -> PT.Unary PT.PostfixDecrement <$> resolveFactor operand
-      | otherwise -> throwError InvalidLValue
-    (PT.Expr expr) -> PT.Expr <$> resolveExpr expr
-    (PT.Unary op' f) -> PT.Unary op' <$> resolveFactor f
-    other -> return other
- where
-  isLValue = \case
-    (PT.Ident _) -> True
-    (PT.Expr (PT.Var _)) -> True
-    (PT.Expr (PT.Factor _)) -> True
-    _ -> False
+  let result = asum $ (\sid -> Map.lookup sid vars >>= Map.lookup ident) <$> stack
+  case result of
+    Nothing -> throwError (UndefinedVariable ident)
+    Just ident' -> return $ Var 0 ident'
 
-resolveExpr :: PT.Expr -> Transform PT.Expr
+resolveExpr :: Expr Parsed -> Transform (Expr Resolved)
 resolveExpr expr = do
-  vars <- use varMap
   case expr of
-    (PT.Var ident) -> do
-      case Map.lookup ident vars of
-        Nothing -> throwError (UndefinedVariable ident)
-        (Just ident') -> return $ PT.Var ident'
-    (PT.Assign lhs rhs)
-      | isLValue lhs -> PT.Assign <$> resolveExpr lhs <*> resolveExpr rhs
+    (VarParsed ident) -> resolveVar ident
+    (Assign lhs rhs)
+      | isLValue lhs -> Assign <$> resolveExpr lhs <*> resolveExpr rhs
       | otherwise -> throwError InvalidLValue
-    (PT.CompoundAssign op' lhs rhs)
-      | isLValue lhs -> PT.CompoundAssign op' <$> resolveExpr lhs <*> resolveExpr rhs
+    (CompoundAssign op' lhs rhs)
+      | isLValue lhs -> CompoundAssign op' <$> resolveExpr lhs <*> resolveExpr rhs
       | otherwise -> throwError InvalidLValue
-    (PT.Factor factor) -> PT.Factor <$> resolveFactor factor
-    (PT.Binary op' lhs rhs) -> PT.Binary op' <$> resolveExpr lhs <*> resolveExpr rhs
+    (Binary op' lhs rhs) -> Binary op' <$> resolveExpr lhs <*> resolveExpr rhs
+    (Unary PrefixIncrement operand)
+      | isLValue operand -> Unary PrefixIncrement <$> resolveExpr operand
+      | otherwise -> throwError InvalidLValue
+    (Unary PrefixDecrement operand)
+      | isLValue operand -> Unary PrefixDecrement <$> resolveExpr operand
+      | otherwise -> throwError InvalidLValue
+    (Unary PostfixIncrement operand)
+      | isLValue operand -> Unary PostfixIncrement <$> resolveExpr operand
+      | otherwise -> throwError InvalidLValue
+    (Unary PostfixDecrement operand)
+      | isLValue operand -> Unary PostfixDecrement <$> resolveExpr operand
+      | otherwise -> throwError InvalidLValue
+    Unary op' expr' -> Unary op' <$> resolveExpr expr'
+    ConditionalE l m r -> ConditionalE <$> resolveExpr l <*> resolveExpr m <*> resolveExpr r
+    (Lit lit) -> return (Lit lit)
+    _ -> error "ICE: unreachable"
  where
   isLValue = \case
-    (PT.Var _) -> True
-    (PT.Factor (PT.Ident _)) -> True
+    (VarParsed _) -> True
     _ -> False
 
-resolveStmt :: PT.Stmt -> Transform PT.Stmt
+resolveStmt :: Stmt Parsed -> Transform (Stmt Resolved)
 resolveStmt = \case
-  (PT.Return expr) -> PT.Return <$> resolveExpr expr
-  (PT.ExprS expr) -> PT.ExprS <$> resolveExpr expr
-  PT.Null -> return PT.Null
+  Return expr -> Return <$> resolveExpr expr
+  ExprS expr -> ExprS <$> resolveExpr expr
+  If a b c -> If <$> resolveExpr a <*> resolveStmt b <*> traverse resolveStmt c
+  Null -> return Null
+  Compound b -> Compound <$> resolveBlock b
+  LabelParsed ident stmt -> do
+    enclosingFunc <- view func >>= maybe (throwError (SemanticAnalysisError "label outside function")) return
+    isDuplicate <- uses funcLabels (Set.member ident . fromMaybe Set.empty . Map.lookup enclosingFunc)
+    when isDuplicate $ throwError (DuplicateLabel ident enclosingFunc)
 
-resolveDecl :: PT.Decl -> Transform PT.Decl
-resolveDecl (PT.Decl name expr) = do
-  vars <- use varMap
-  when (Map.member name vars) $ throwError (Redefinition name)
-  tmp <- makeTemporary name
-  varMap %= Map.insert name tmp
+    stmt' <- resolveStmt stmt
+    funcLabels . at enclosingFunc . non Set.empty %= Set.insert ident
+    return $ Label enclosingFunc ident stmt'
+  GotoParsed label -> do
+    enclosingFunc <- view func >>= maybe (throwError (SemanticAnalysisError "label outside function")) return
+    return $ Goto enclosingFunc label
+  _ -> error "ICE: unreachable"
+
+resolveDecl :: Decl Parsed -> Transform (Decl Resolved)
+resolveDecl (Decl d expr) = do
+  sid <- view (scopeStack . to head)
+  currentScopeMap <- use (varMap . at sid) <&> fromMaybe Map.empty
+  when (Map.member d currentScopeMap) $ throwError (Redefinition d)
+  tmp <- makeTemporary d
+  varMap . at sid . non Map.empty . at d .= Just tmp
   case expr of
-    Nothing -> return $ PT.Decl tmp expr
-    (Just expr') -> PT.Decl tmp . pure <$> resolveExpr expr'
+    Nothing -> return $ Decl tmp Nothing
+    (Just expr') -> Decl tmp . pure <$> resolveExpr expr'
 
-resolveBlockItem :: PT.BlockItem -> Transform PT.BlockItem
+resolveBlockItem :: BlockItem Parsed -> Transform (BlockItem Resolved)
 resolveBlockItem = \case
-  (PT.S stmt) -> PT.S <$> resolveStmt stmt
-  (PT.D decl) -> PT.D <$> resolveDecl decl
+  (S stmt) -> S <$> resolveStmt stmt
+  (D decl) -> D <$> resolveDecl decl
 
-resolveBlockItems :: [PT.BlockItem] -> Transform [PT.BlockItem]
+resolveBlockItems :: [BlockItem Parsed] -> Transform [BlockItem Resolved]
 resolveBlockItems = mapM resolveBlockItem
 
-resolveFunc :: PT.Func -> Transform PT.Func
-resolveFunc (PT.Func ident body) = PT.Func ident <$> resolveBlockItems body
+resolveBlock :: Block Parsed -> Transform (Block Resolved)
+resolveBlock (BlockParsed items) = scopeSeq <<+= 1 >>= \sid' -> withScope sid' $ Block sid' <$> resolveBlockItems items
+resolveBlock _ = error "ICE: unreachable"
 
-resolveProgram :: PT.Program -> Transform PT.Program
-resolveProgram (PT.Program f) = PT.Program <$> resolveFunc f
+resolveFunc :: Func Parsed -> Transform (Func Resolved)
+resolveFunc (Func ident funcBody) = local (func ?~ ident) $ Func ident <$> resolveBlock funcBody
+
+resolveProgram :: Program Parsed -> Transform (Program Resolved)
+resolveProgram (Program f) = scopeSeq <<+= 1 >>= \sid' -> withScope sid' $ Program <$> resolveFunc f

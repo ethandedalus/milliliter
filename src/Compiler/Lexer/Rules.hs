@@ -3,11 +3,12 @@
 module Compiler.Lexer.Rules where
 
 import Compiler.Lexer.Types (Rule, RuleMatch (..), Token (..))
+import Control.Applicative ((<|>))
 import Data.Char (isAlphaNum)
 import Text.Regex.TDFA (defaultCompOpt, defaultExecOpt, makeRegexOpts, matchM, multiline, (=~))
 
 lexLiteral :: Rule
-lexLiteral = lexInt
+lexLiteral stream = lexLong stream <|> lexInt stream
  where
   lexInt s = case s =~ "^[0-9]+" :: (String, String, String) of
     ("", m, rest)
@@ -15,13 +16,23 @@ lexLiteral = lexInt
           Just $ RuleMatch (TLit (read m)) rest (length m)
     _ -> Nothing
 
+  lexLong s = case s =~ "^[0-9]+[lL]" :: (String, String, String) of
+    ("", m, rest)
+      | not (null m)
+      , null rest || not (isAlphaNum (head rest) || head rest == '_') ->
+          Just $ RuleMatch (TLong (read (init m))) rest (length m)
+    _ -> Nothing
+
 lexKeywordOrIdent :: Rule
-lexKeywordOrIdent stream = case stream =~ "^[a-zA-Z_]([a-zA-Z0-9_])*([:space:])*" :: (String, String, String) of
+lexKeywordOrIdent stream = case stream =~ "^[a-zA-Z_]([a-zA-Z0-9_])*" :: (String, String, String) of
   ("", match, rest) -> case match of
     "int" -> Just (RuleMatch TInt rest 3)
     "void" -> Just (RuleMatch TVoid rest 4)
     "float" -> Just (RuleMatch TFloat rest 5)
     "return" -> Just (RuleMatch TReturn rest 6)
+    "if" -> Just (RuleMatch TIf rest 2)
+    "else" -> Just (RuleMatch TElse rest 4)
+    "goto" -> Just (RuleMatch TGoto rest 4)
     _ -> Just (RuleMatch (TIdent match) rest (length match))
   _ -> Nothing
 
@@ -261,6 +272,18 @@ lexMultiLineComment stream = case makeRegexOpts defaultCompOpt{multiline = False
   Just ("", match, rest) -> Just $ RuleMatch (TMultiLineComment (splitOn '\n' match)) rest (length match)
   _ -> Nothing
 
+-- control structures
+
+lexColon :: Rule
+lexColon stream = case stream =~ "^\\:" :: (String, String, String) of
+  ("", _, rest) -> Just $ RuleMatch TColon rest 1
+  _ -> Nothing
+
+lexQuestionMark :: Rule
+lexQuestionMark stream = case stream =~ "^\\?" :: (String, String, String) of
+  ("", _, rest) -> Just $ RuleMatch TQuestionMark rest 1
+  _ -> Nothing
+
 allRules :: [Rule]
 allRules =
   [ lexSingleLineComment
@@ -309,4 +332,6 @@ allRules =
   , lexRShiftEq
   , lexMinusMinus
   , lexPlusPlus
+  , lexColon
+  , lexQuestionMark
   ]

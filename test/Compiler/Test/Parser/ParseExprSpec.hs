@@ -1,14 +1,16 @@
+{-# LANGUAGE DataKinds #-}
+
 module Compiler.Test.Parser.ParseExprSpec where
 
+import Compiler.AST
 import qualified Compiler.Lexer as Lexer (lex)
 import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseExpr)
-import Compiler.Parser.Types (BinaryOperator (..), Expr (..), Factor (..), UnaryOperator (..))
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-type Test = UnitTest Expr
+type Test = UnitTest ParsedExpr
 
 spec :: Spec
 spec = do
@@ -40,25 +42,25 @@ literalInt :: Test
 literalInt = UnitTest "literal int" "42" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Lit 42)
+  result = Lit 42
 
 unaryFactor1 :: Test
 unaryFactor1 = UnitTest "unary factor expression" "~42" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Unary Complement (Lit 42))
+  result = Unary Complement (Lit 42)
 
 unaryFactor2 :: Test
 unaryFactor2 = UnitTest "unary factor expression" "~(42)" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Factor (Unary Complement (Expr (Factor (Lit 42))))
+  result = Unary Complement (Lit 42)
 
 simpleAddition :: Test
 simpleAddition = UnitTest "simple 2 term arithmetic" "21 + 21" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Binary Add (Factor (Lit 21)) (Factor (Lit 21))
+  result = Binary Add (Lit 21) (Lit 21)
 
 arith1 :: Test
 arith1 =
@@ -66,8 +68,8 @@ arith1 =
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
   result =
-    Binary Add (Factor (Lit 21)) $
-      Binary Mul (Factor (Lit 3)) (Factor (Lit 7))
+    Binary Add (Lit 21) $
+      Binary Mul (Lit 3) (Lit 7)
 
 arithWithGrouping1 :: Test
 arithWithGrouping1 =
@@ -77,8 +79,8 @@ arithWithGrouping1 =
   result =
     Binary
       Div
-      (Binary Mul (Factor (Lit 10)) (Factor (Lit 3)))
-      (Factor (Expr (Binary Add (Factor (Lit 7)) (Factor (Lit 11)))))
+      (Binary Mul (Lit 10) (Lit 3))
+      (Binary Add (Lit 7) (Lit 11))
 
 arithWithGrouping2 :: Test
 arithWithGrouping2 = UnitTest "arithmetic with grouping (2)" "10 + 5 * (2 + 5) - 3" compile $ pure result
@@ -89,10 +91,10 @@ arithWithGrouping2 = UnitTest "arithmetic with grouping (2)" "10 + 5 * (2 + 5) -
       Sub
       ( Binary
           Add
-          (Factor (Lit 10))
-          (Binary Mul (Factor (Lit 5)) (Factor (Expr (Binary Add (Factor (Lit 2)) (Factor (Lit 5))))))
+          (Lit 10)
+          (Binary Mul (Lit 5) (Binary Add (Lit 2) (Lit 5)))
       )
-      (Factor (Lit 3))
+      (Lit 3)
 
 bitwise1 :: Test
 bitwise1 = UnitTest "bitwise precedence" "1 << 2 & 3 | 4 >> 5 ^ 6" compile $ pure result
@@ -101,17 +103,17 @@ bitwise1 = UnitTest "bitwise precedence" "1 << 2 & 3 | 4 >> 5 ^ 6" compile $ pur
   result =
     Binary
       BitOr
-      (Binary BitAnd (Binary LeftShift (Factor (Lit 1)) (Factor (Lit 2))) (Factor (Lit 3)))
-      (Binary Xor (Binary RightShift (Factor (Lit 4)) (Factor (Lit 5))) (Factor (Lit 6)))
+      (Binary BitAnd (Binary LeftShift (Lit 1) (Lit 2)) (Lit 3))
+      (Binary Xor (Binary RightShift (Lit 4) (Lit 5)) (Lit 6))
 
 assignment1 :: Test
 assignment1 = UnitTest "simple assignment" "a = b" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Assign (Factor (Ident "a")) (Factor (Ident "b"))
+  result = Assign (VarParsed "a") (VarParsed "b")
 
 assignment2 :: Test
 assignment2 = UnitTest "compound assignment" "a = b = c = d" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Assign (Factor (Ident "a")) (Assign (Factor (Ident "b")) (Assign (Factor (Ident "c")) (Factor (Ident "d"))))
+  result = Assign (VarParsed "a") (Assign (VarParsed "b") (Assign (VarParsed "c") (VarParsed "d")))

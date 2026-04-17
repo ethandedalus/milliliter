@@ -19,6 +19,7 @@ import Control.Monad.State (StateT)
 
 data Token
   = TLit Int
+  | TLong Integer
   | TIdent String
   | TInt
   | TVoid
@@ -67,11 +68,17 @@ data Token
   | TLShiftEq
   | TRShiftEq
   | TXorEq
+  | TColon
+  | TIf
+  | TElse
+  | TQuestionMark
+  | TGoto
   deriving (Show, Eq)
 
 tokenName :: Token -> String
 tokenName = \case
   TLit _ -> "INTEGER_LITERAL"
+  TLong _ -> "LONG_LITERAL"
   TIdent _ -> "IDENT"
   TInt -> "INT"
   TVoid -> "VOID"
@@ -120,6 +127,11 @@ tokenName = \case
   TLShiftEq -> "LEFT_SHIFT_EQ"
   TRShiftEq -> "RIGHT_SHIFT_EQ"
   TXorEq -> "XOR_EQ"
+  TColon -> "COLON"
+  TIf -> "IF"
+  TElse -> "ELSE"
+  TQuestionMark -> "QUESTION_MARK"
+  TGoto -> "GOTO"
 
 data RuleMatch = RuleMatch {matchToken :: Token, matchRest :: String, matchLen :: Int} deriving (Show, Eq)
 

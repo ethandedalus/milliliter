@@ -16,8 +16,8 @@ module Compiler.IR.Types (
   IRError (..),
 ) where
 
+import qualified Compiler.AST as AST
 import Compiler.Class (From (..))
-import qualified Compiler.Parser.Types as PT (BinaryOperator (..), UnaryOperator (..))
 import Control.Lens
 import Control.Monad.State (StateT)
 
@@ -33,15 +33,15 @@ data UnaryOperator
   | PostfixDecrement
   deriving (Eq, Show)
 
-instance From PT.UnaryOperator UnaryOperator where
+instance From AST.UnaryOperator UnaryOperator where
   from = \case
-    PT.Complement -> Complement
-    PT.Negate -> Negate
-    PT.Not -> Not
-    PT.PrefixIncrement -> PrefixIncrement
-    PT.PostfixIncrement -> PostfixIncrement
-    PT.PrefixDecrement -> PrefixIncrement
-    PT.PostfixDecrement -> PostfixDecrement
+    AST.Complement -> Complement
+    AST.Negate -> Negate
+    AST.Not -> Not
+    AST.PrefixIncrement -> PrefixIncrement
+    AST.PostfixIncrement -> PostfixIncrement
+    AST.PrefixDecrement -> PrefixIncrement
+    AST.PostfixDecrement -> PostfixDecrement
 
 data BinaryOperator
   = Add
@@ -75,37 +75,38 @@ data BinaryOperator
   | ShrAssign
   deriving (Eq, Show)
 
-instance From PT.BinaryOperator BinaryOperator where
+instance From AST.BinaryOperator BinaryOperator where
   from = \case
-    PT.Add -> Add
-    PT.Sub -> Sub
-    PT.Mul -> Mul
-    PT.Div -> Div
-    PT.Mod -> Mod
-    PT.LeftShift -> LeftShift
-    PT.RightShift -> RightShift
-    PT.BitAnd -> BitAnd
-    PT.Xor -> Xor
-    PT.BitOr -> BitOr
-    PT.Equal -> Equal
-    PT.NotEqual -> NotEqual
-    PT.GreaterThan -> GreaterThan
-    PT.GreaterOrEqual -> GreaterOrEqual
-    PT.LessThan -> LessThan
-    PT.LessOrEqual -> LessOrEqual
-    PT.And -> And
-    PT.Or -> Or
-    PT.Assignment -> Assignment
-    PT.AddAssign -> AddAssign
-    PT.SubAssign -> SubAssign
-    PT.MulAssign -> MulAssign
-    PT.DivAssign -> DivAssign
-    PT.ModAssign -> ModAssign
-    PT.AndAssign -> AndAssign
-    PT.OrAssign -> OrAssign
-    PT.XorAssign -> XorAssign
-    PT.ShlAssign -> ShlAssign
-    PT.ShrAssign -> ShrAssign
+    AST.Add -> Add
+    AST.Sub -> Sub
+    AST.Mul -> Mul
+    AST.Div -> Div
+    AST.Mod -> Mod
+    AST.LeftShift -> LeftShift
+    AST.RightShift -> RightShift
+    AST.BitAnd -> BitAnd
+    AST.Xor -> Xor
+    AST.BitOr -> BitOr
+    AST.Equal -> Equal
+    AST.NotEqual -> NotEqual
+    AST.GreaterThan -> GreaterThan
+    AST.GreaterOrEqual -> GreaterOrEqual
+    AST.LessThan -> LessThan
+    AST.LessOrEqual -> LessOrEqual
+    AST.And -> And
+    AST.Or -> Or
+    AST.Assignment -> Assignment
+    AST.AddAssign -> AddAssign
+    AST.SubAssign -> SubAssign
+    AST.MulAssign -> MulAssign
+    AST.DivAssign -> DivAssign
+    AST.ModAssign -> ModAssign
+    AST.AndAssign -> AndAssign
+    AST.OrAssign -> OrAssign
+    AST.XorAssign -> XorAssign
+    AST.ShlAssign -> ShlAssign
+    AST.ShrAssign -> ShrAssign
+    binop -> error $ "ICE: operator " ++ show binop ++ " cannot be converted directly into IR"
 
 data Instruction
   = Return Val

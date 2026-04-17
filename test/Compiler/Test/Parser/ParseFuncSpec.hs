@@ -1,14 +1,14 @@
 module Compiler.Test.Parser.ParseFuncSpec where
 
+import Compiler.AST
 import qualified Compiler.Lexer as Lexer (lex)
 import Compiler.Parser (parse)
 import Compiler.Parser.Combinators (parseFunc)
-import Compiler.Parser.Types
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest))
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-type Test = UnitTest Func
+type Test = UnitTest ParsedFunc
 
 spec :: Spec
 spec = do
@@ -22,7 +22,7 @@ func1 :: Test
 func1 = UnitTest "simple main" "int main(void) { return 0; }" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseFunc
-  result = Func "main" [S $ Return (Factor $ Lit 0)]
+  result = Func "main" (BlockParsed [S $ Return (Lit 0)])
 
 func2 :: Test
 func2 = UnitTest "function with assignments" program compile $ pure result
@@ -33,10 +33,11 @@ func2 = UnitTest "function with assignments" program compile $ pure result
     Func
       { name = "main"
       , body =
-          [ D (Decl "a" (Just (Factor (Lit 5))))
-          , S (ExprS (Assign (Factor (Ident "a")) (Binary Add (Factor (Ident "a")) (Factor (Lit 5)))))
-          , S (Return (Factor (Ident "a")))
-          ]
+          BlockParsed
+            [ D (Decl "a" (Just $ Lit 5))
+            , S (ExprS (Assign (VarParsed "a") (Binary Add (VarParsed "a") (Lit 5))))
+            , S (Return (VarParsed "a"))
+            ]
       }
 
 func3 :: Test
@@ -48,8 +49,9 @@ func3 = UnitTest "using the return value of an assignment" program compile $ pur
     Func
       { name = "main"
       , body =
-          [ D (Decl "a" (Just (Factor (Lit 5))))
-          , D (Decl "b" (Just (Binary Add (Factor (Lit 2)) (Factor (Expr (Assign (Factor (Ident "a")) (Factor (Lit 4))))))))
-          , S (Return (Factor (Ident "b")))
-          ]
+          BlockParsed
+            [ D (Decl "a" (Just (Lit 5)))
+            , D (Decl "b" (Just (Binary Add (Lit 2) (Assign (VarParsed "a") (Lit 4)))))
+            , S (Return (VarParsed "b"))
+            ]
       }

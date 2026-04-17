@@ -1,52 +1,32 @@
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 
-module Compiler.Parser.Combinators (
-  parseFactor,
-  parseExpr,
-  parseProgram,
-  parseStmt,
-  parseFunc,
-  parseDecl,
-  parseBlockItem,
-) where
+module Compiler.Parser.Combinators where
 
-import Compiler.Lexer.Types (Span, Token (..), tokenName)
-import Compiler.Parser.Types (
-  BinaryOperator (..),
-  BlockItem (..),
-  Decl (..),
-  Expr (..),
-  Factor (..),
-  Func (..),
-  ParseError (..),
-  Parser,
-  Program (..),
-  Stmt (..),
-  UnaryOperator (..),
- )
+import Compiler.AST
+import qualified Compiler.Lexer.Types as LT
+import Compiler.Parser.Types
+import Compiler.Pass
 import Control.Monad (void)
 import Control.Monad.Except (throwError)
 import Control.Monad.State (get, put)
-
-pattern Tok :: Token -> [(Token, Span)] -> [(Token, Span)]
-pattern Tok t ts <- ((t, _) : ts)
 
 consumeComments :: Parser ()
 consumeComments = do
   stream <- get
   case stream of
-    ((TSingleLineComment _, _) : ts) -> put ts >> consumeComments
-    ((TMultiLineComment _, _) : ts) -> put ts >> consumeComments
+    ((LT.TSingleLineComment _, _) : ts) -> put ts >> consumeComments
+    ((LT.TMultiLineComment _, _) : ts) -> put ts >> consumeComments
     _ -> pure ()
 
-consumeToken :: Token -> Parser ()
+consumeToken :: LT.Token -> Parser ()
 consumeToken expected = do
   consumeComments
   stream <- get
   case stream of
     ((t, _) : ts) | t == expected -> void (put ts)
-    ((t, _) : _) -> throwError (UnexpectedToken t $ "expected " ++ tokenName expected)
-    [] -> throwError (UnexpectedEOF $ "expected " ++ tokenName expected)
+    ((t, _) : _) -> throwError (UnexpectedToken t $ "expected " ++ LT.tokenName expected)
+    [] -> throwError (UnexpectedEOF $ "expected " ++ LT.tokenName expected)
 
 discardToken :: Parser ()
 discardToken = do
@@ -56,16 +36,15 @@ discardToken = do
     ((_, _) : ts) -> put ts
     _ -> throwError (UnexpectedEOF "end of stream")
 
-consumeTokens :: [Token] -> Parser ()
+consumeTokens :: [LT.Token] -> Parser ()
 consumeTokens = mapM_ consumeToken
 
-peek :: Parser (Maybe Token)
+peek :: Parser (Maybe LT.Token)
 peek = do
   consumeComments
   stream <- get
   case stream of
-    Tok t _ -> (return . Just) t
-    [] -> return Nothing
+    ((t, _) : _) -> (return . Just) t
     _ -> return Nothing
 
 consumeIdent :: Parser String
@@ -73,39 +52,35 @@ consumeIdent = do
   consumeComments
   stream <- get
   case stream of
-    ((TIdent ident, _) : ts) -> put ts >> return ident
+    ((LT.TIdent ident, _) : ts) -> put ts >> return ident
     ((t, _) : _) -> throwError (UnexpectedToken t $ "expected " ++ "IDENT")
     [] -> throwError (UnexpectedEOF "expected IDENT")
 
-rewritePostfix :: Factor -> Parser Factor
+rewritePostfix :: Expr Parsed -> Parser (Expr Parsed)
 rewritePostfix factor = do
   next <- peek
   case next of
-    (Just TPlusPlus) -> do
-      discardToken
-      return $ Unary PostfixIncrement factor
-    (Just TMinusMinus) -> do
-      discardToken
-      return $ Unary PostfixDecrement factor
+    (Just LT.TPlusPlus) -> discardToken >> rewritePostfix (Unary PostfixIncrement factor)
+    (Just LT.TMinusMinus) -> discardToken >> rewritePostfix (Unary PostfixDecrement factor)
     _ -> return factor
 
-parseFactor :: Parser Factor
+parseFactor :: Parser (Expr Parsed)
 parseFactor = do
   consumeComments
   stream <- get
   case stream of
-    ((TLit lit, _) : ts) -> put ts >> return (Lit lit)
-    ((TComplement, _) : ts) -> put ts >> Unary Complement <$> parseFactor
-    ((TNot, _) : ts) -> put ts >> Unary Not <$> parseFactor
-    ((TMinus, _) : ts) -> put ts >> Unary Negate <$> parseFactor
-    ((TPlusPlus, _) : ts) -> put ts >> Unary PrefixIncrement <$> parseFactor
-    ((TMinusMinus, _) : ts) -> put ts >> Unary PrefixDecrement <$> parseFactor
-    ((TIdent ident, _) : ts) -> put ts >> rewritePostfix (Ident ident)
-    ((TLParen, _) : ts) -> do
+    ((LT.TLit lit, _) : ts) -> put ts >> return (Lit lit)
+    ((LT.TComplement, _) : ts) -> put ts >> Unary Complement <$> parseFactor
+    ((LT.TNot, _) : ts) -> put ts >> Unary Not <$> parseFactor
+    ((LT.TMinus, _) : ts) -> put ts >> Unary Negate <$> parseFactor
+    ((LT.TPlusPlus, _) : ts) -> put ts >> Unary PrefixIncrement <$> parseFactor
+    ((LT.TMinusMinus, _) : ts) -> put ts >> Unary PrefixDecrement <$> parseFactor
+    ((LT.TIdent ident, _) : ts) -> put ts >> rewritePostfix (VarParsed ident)
+    ((LT.TLParen, _) : ts) -> do
       put ts
       expr <- parseExpr 0
-      consumeToken TRParen
-      rewritePostfix (Expr expr)
+      consumeToken LT.TRParen
+      rewritePostfix expr
     [] -> throwError (UnexpectedEOF "expected one of LITERAL, TILDE, BANG, MINUS, OPEN_PAREN")
     ((t, _) : _) -> throwError (UnexpectedToken t "expected one of LITERAL, TILDE, BANG, MINUS, OPEN_PAREN")
 
@@ -114,68 +89,74 @@ peekBinaryOperatorOrAssignment = do
   consumeComments
   tok <- peek
   case tok of
-    (Just TStar) -> return . return $ (Mul, 130)
-    (Just TDiv) -> return . return $ (Div, 130)
-    (Just TMod) -> return . return $ (Mod, 130)
-    (Just TPlus) -> return . return $ (Add, 120)
-    (Just TMinus) -> return . return $ (Sub, 120)
-    (Just TLShift) -> return . return $ (LeftShift, 110)
-    (Just TRShift) -> return . return $ (RightShift, 110)
-    (Just TGT) -> return . return $ (GreaterThan, 100)
-    (Just TLT) -> return . return $ (LessThan, 100)
-    (Just TGTE) -> return . return $ (GreaterOrEqual, 100)
-    (Just TLTE) -> return . return $ (LessOrEqual, 100)
-    (Just TEqEq) -> return . return $ (Equal, 90)
-    (Just TNotEq) -> return . return $ (NotEqual, 90)
-    (Just TAnd) -> return . return $ (BitAnd, 80)
-    (Just TXor) -> return . return $ (Xor, 70)
-    (Just TOr) -> return . return $ (BitOr, 60)
-    (Just TAndAnd) -> return . return $ (And, 50)
-    (Just TOrOr) -> return . return $ (Or, 40)
-    (Just TEq) -> return . return $ (Assignment, 1)
-    (Just TPlusEq) -> return . return $ (AddAssign, 1)
-    (Just TMinusEq) -> return . return $ (SubAssign, 1)
-    (Just TStarEq) -> return . return $ (MulAssign, 1)
-    (Just TDivEq) -> return . return $ (DivAssign, 1)
-    (Just TModEq) -> return . return $ (ModAssign, 1)
-    (Just TAndEq) -> return . return $ (AndAssign, 1)
-    (Just TOrEq) -> return . return $ (OrAssign, 1)
-    (Just TXorEq) -> return . return $ (XorAssign, 1)
-    (Just TLShiftEq) -> return . return $ (ShlAssign, 1)
-    (Just TRShiftEq) -> return . return $ (ShrAssign, 1)
+    Just LT.TStar -> return . return $ (Mul, 130)
+    Just LT.TDiv -> return . return $ (Div, 130)
+    Just LT.TMod -> return . return $ (Mod, 130)
+    Just LT.TPlus -> return . return $ (Add, 120)
+    Just LT.TMinus -> return . return $ (Sub, 120)
+    Just LT.TLShift -> return . return $ (LeftShift, 110)
+    Just LT.TRShift -> return . return $ (RightShift, 110)
+    Just LT.TGT -> return . return $ (GreaterThan, 100)
+    Just LT.TLT -> return . return $ (LessThan, 100)
+    Just LT.TGTE -> return . return $ (GreaterOrEqual, 100)
+    Just LT.TLTE -> return . return $ (LessOrEqual, 100)
+    Just LT.TEqEq -> return . return $ (Equal, 90)
+    Just LT.TNotEq -> return . return $ (NotEqual, 90)
+    Just LT.TAnd -> return . return $ (BitAnd, 80)
+    Just LT.TXor -> return . return $ (Xor, 70)
+    Just LT.TOr -> return . return $ (BitOr, 60)
+    Just LT.TAndAnd -> return . return $ (And, 50)
+    Just LT.TOrOr -> return . return $ (Or, 40)
+    Just LT.TQuestionMark -> return . return $ (Conditional, 3)
+    Just LT.TEq -> return . return $ (Assignment, 1)
+    Just LT.TPlusEq -> return . return $ (AddAssign, 1)
+    Just LT.TMinusEq -> return . return $ (SubAssign, 1)
+    Just LT.TStarEq -> return . return $ (MulAssign, 1)
+    Just LT.TDivEq -> return . return $ (DivAssign, 1)
+    Just LT.TModEq -> return . return $ (ModAssign, 1)
+    Just LT.TAndEq -> return . return $ (AndAssign, 1)
+    Just LT.TOrEq -> return . return $ (OrAssign, 1)
+    Just LT.TXorEq -> return . return $ (XorAssign, 1)
+    Just LT.TLShiftEq -> return . return $ (ShlAssign, 1)
+    Just LT.TRShiftEq -> return . return $ (ShrAssign, 1)
     _ -> return Nothing
 
-parseExpr :: Int -> Parser Expr
+parseExpr :: Int -> Parser (Expr Parsed)
 parseExpr minPrecedence = do
   consumeComments
   left <- parseFactor
-  go (Factor left)
+  go left
  where
-  go :: Expr -> Parser Expr
+  go :: Expr Parsed -> Parser (Expr Parsed)
   go left = do
     next <- peekBinaryOperatorOrAssignment
     case next of
       (Just (Assignment, precedence)) | precedence >= minPrecedence -> assign precedence left
       (Just (op, precedence)) | precedence >= minPrecedence, isCompoundAssign op -> compoundAssign op precedence left
+      Just (Conditional, precedence) | precedence >= minPrecedence -> do
+        discardToken
+        middle <- parseExpr 0
+        consumeToken LT.TColon
+        right <- parseExpr precedence
+        go (ConditionalE left middle right)
       (Just (op, precedence)) | precedence >= minPrecedence -> do
         discardToken
         right <- parseExpr (precedence + 1)
         go (Binary op left right)
       _ -> return left
 
-  isCompoundAssign op =
-    op
-      `elem` [ AddAssign
-             , SubAssign
-             , MulAssign
-             , DivAssign
-             , ModAssign
-             , AndAssign
-             , OrAssign
-             , XorAssign
-             , ShlAssign
-             , ShrAssign
-             ]
+  isCompoundAssign = \case
+    AddAssign -> True
+    SubAssign -> True
+    MulAssign -> True
+    DivAssign -> True
+    ModAssign -> True
+    AndAssign -> True
+    OrAssign -> True
+    XorAssign -> True
+    ShlAssign -> True
+    ShrAssign -> True
+    _ -> False
 
   assign precedence' left = do
     discardToken
@@ -187,70 +168,90 @@ parseExpr minPrecedence = do
     right <- parseExpr precedence'
     go (CompoundAssign op left right)
 
-parseStmt :: Parser Stmt
+parseStmt :: Parser (Stmt Parsed)
 parseStmt = do
   consumeComments
   stream <- get
   case stream of
-    ((TReturn, _) : ts) -> do
+    ((LT.TReturn, _) : ts) -> do
       put ts
       expr <- parseExpr 0
-      consumeToken TSemicolon
+      consumeToken LT.TSemicolon
       return (Return expr)
-    ((TSemicolon, _) : ts) -> put ts >> return Null
+    ((LT.TSemicolon, _) : ts) -> put ts >> return Null
+    ((LT.TIf, _) : ts) -> do
+      put ts
+      consumeToken LT.TLParen
+      cond <- parseExpr 0
+      consumeToken LT.TRParen
+      inner <- parseStmt
+      next <- peek
+      case next of
+        Just LT.TElse -> discardToken >> If cond inner . Just <$> parseStmt
+        _ -> return $ If cond inner Nothing
+    ((LT.TLBrace, _) : _) -> Compound <$> parseBlock
+    ((LT.TGoto, _) : ts) -> do
+      put ts
+      label <- consumeIdent
+      consumeToken LT.TSemicolon
+      return $ GotoParsed label
+    ((LT.TIdent ident, _) : (LT.TColon, _) : ts) -> put ts >> LabelParsed ident <$> parseStmt
     _ -> do
       expr <- parseExpr 0
-      consumeToken TSemicolon
+      consumeToken LT.TSemicolon
       return $ ExprS expr
 
-parseDecl :: Parser Decl
+parseDecl :: Parser (Decl Parsed)
 parseDecl = do
   consumeComments
-  consumeToken TInt
+  consumeToken LT.TInt
   ident <- consumeIdent
   stream <- get
 
   case stream of
-    ((TEq, _) : ts) -> do
+    ((LT.TEq, _) : ts) -> do
       put ts
       expr <- parseExpr 0
-      consumeToken TSemicolon
+      consumeToken LT.TSemicolon
       return $ Decl ident (pure expr)
-    ((TSemicolon, _) : ts) -> put ts >> return (Decl ident Nothing)
+    ((LT.TSemicolon, _) : ts) -> put ts >> return (Decl ident Nothing)
     ((t, _) : _) -> throwError (UnexpectedToken t "expected EQUAL or SEMICOLON")
     _ -> throwError (UnexpectedEOF "expected EQUAL or SEMICOLON")
 
-parseBlockItem :: Parser BlockItem
+parseBlockItem :: Parser (BlockItem Parsed)
 parseBlockItem = do
   consumeComments
   tok <- peek >>= \t -> maybe (throwError $ UnexpectedEOF "expected block item") return t
   case tok of
-    TInt -> D <$> parseDecl
+    LT.TInt -> D <$> parseDecl
     _ -> S <$> parseStmt
 
-parseFunc :: Parser Func
-parseFunc = do
+parseBlock :: Parser (Block Parsed)
+parseBlock = do
   consumeComments
-  consumeToken TInt
-  ident <- consumeIdent
-  consumeTokens [TLParen, TVoid, TRParen, TLBrace]
-  Func ident <$> parseBody []
+  consumeToken LT.TLBrace *> (BlockParsed <$> go []) <* consumeToken LT.TRBrace
  where
-  parseBody :: [BlockItem] -> Parser [BlockItem]
-  parseBody items = do
+  go :: [BlockItem Parsed] -> Parser [BlockItem Parsed]
+  go items = do
     consumeComments
     stream <- get
     case stream of
-      ((TRBrace, _) : ts) -> put ts >> return items
-      _ -> do
-        item <- parseBlockItem
-        parseBody (items ++ [item])
+      ((LT.TRBrace, _) : _) -> return items
+      _ -> parseBlockItem >>= \item -> go (items ++ [item])
 
-parseProgram :: Parser Program
+parseFunc :: Parser (Func Parsed)
+parseFunc = do
+  consumeComments
+  consumeToken LT.TInt
+  ident <- consumeIdent
+  consumeTokens [LT.TLParen, LT.TVoid, LT.TRParen]
+  Func ident <$> parseBlock
+
+parseProgram :: Parser (Program Parsed)
 parseProgram = do
   consumeComments
   func <- parseFunc
   stream <- get
   case stream of
-    [] -> return $ Program func
+    [] -> consumeComments >> return (Program func)
     ((t, _) : _) -> throwError (UnexpectedToken t "expected EOF")

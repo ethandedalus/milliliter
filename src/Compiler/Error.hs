@@ -12,5 +12,4 @@ data CompileError
   | SemanticAnalysisError SemanticAnalysisError
   | IRError IRError
   | CodegenError CodegenError
-  | CompileError String
   deriving (Eq, Show)
