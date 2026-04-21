@@ -9,8 +9,8 @@ import qualified Compiler.Parser as P (parse)
 import qualified Compiler.Parser.Combinators as P (parseStmt)
 import qualified Compiler.SemanticAnalysis as S
 import qualified Compiler.SemanticAnalysis.LabelValidation as S
+import qualified Compiler.SemanticAnalysis.Resolve as S
 import qualified Compiler.SemanticAnalysis.Types as S
-import qualified Compiler.SemanticAnalysis.VariableResolution as S
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest), prepareEnv)
 import Control.Monad (forM_, (>=>))
 import Test.Hspec (Spec, describe, it, shouldBe)

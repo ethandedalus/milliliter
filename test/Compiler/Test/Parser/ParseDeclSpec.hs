@@ -30,7 +30,7 @@ decl2 :: Test
 decl2 = UnitTest "simple decl (2)" "int b = a;" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseDecl
-  result = Decl "b" $ pure (VarParsed "a")
+  result = Decl "b" $ pure (VarP "a")
 
 decl3 :: Test
 decl3 = UnitTest "decl without initializer" "int a;" compile $ pure result

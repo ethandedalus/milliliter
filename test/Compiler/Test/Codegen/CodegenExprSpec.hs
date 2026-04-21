@@ -12,8 +12,8 @@ import qualified Compiler.Lexer as Lexer (lex)
 import qualified Compiler.Parser as P (parse)
 import qualified Compiler.Parser.Combinators as P (parseExpr)
 import qualified Compiler.SemanticAnalysis as S
+import qualified Compiler.SemanticAnalysis.Resolve as S
 import qualified Compiler.SemanticAnalysis.Types as S
-import qualified Compiler.SemanticAnalysis.VariableResolution as S
 import Compiler.Stage (Stage)
 import Compiler.Test.Shared.UnitTest (UnitTest (UnitTest), prepareEnv)
 import Control.Monad (forM_, (>=>))

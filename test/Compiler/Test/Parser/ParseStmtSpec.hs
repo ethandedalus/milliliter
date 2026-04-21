@@ -62,10 +62,10 @@ exprStmt1 :: Test
 exprStmt1 = UnitTest "expression statement (1)" "a = 5;" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = ExprS (Assign (VarParsed "a") (Lit 5))
+  result = ExprS (Assign (VarP "a") (Lit 5))
 
 exprStmt2 :: Test
 exprStmt2 = UnitTest "expression statement (2)" "~(a = 1);" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseStmt
-  result = ExprS (Unary Complement (Assign (VarParsed "a") (Lit 1)))
+  result = ExprS (Unary Complement (Assign (VarP "a") (Lit 1)))

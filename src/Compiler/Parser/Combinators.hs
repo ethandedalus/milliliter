@@ -7,9 +7,11 @@ import Compiler.AST
 import qualified Compiler.Lexer.Types as LT
 import Compiler.Parser.Types
 import Compiler.Pass
-import Control.Monad (void)
-import Control.Monad.Except (throwError)
+import Control.Applicative (optional, (<|>))
+import Control.Monad (void, when)
+import Control.Monad.Except (catchError, throwError)
 import Control.Monad.State (get, put)
+import Data.Maybe (isJust)
 
 consumeComments :: Parser ()
 consumeComments = do
@@ -47,6 +49,14 @@ peek = do
     ((t, _) : _) -> (return . Just) t
     _ -> return Nothing
 
+peek2 :: Parser (Maybe (LT.Token, LT.Token))
+peek2 = do
+  consumeComments
+  stream <- get
+  case stream of
+    ((t1, _) : (t2, _) : _) -> (return . Just) (t1, t2)
+    _ -> return Nothing
+
 consumeIdent :: Parser String
 consumeIdent = do
   consumeComments
@@ -75,7 +85,7 @@ parseFactor = do
     ((LT.TMinus, _) : ts) -> put ts >> Unary Negate <$> parseFactor
     ((LT.TPlusPlus, _) : ts) -> put ts >> Unary PrefixIncrement <$> parseFactor
     ((LT.TMinusMinus, _) : ts) -> put ts >> Unary PrefixDecrement <$> parseFactor
-    ((LT.TIdent ident, _) : ts) -> put ts >> rewritePostfix (VarParsed ident)
+    ((LT.TIdent ident, _) : ts) -> put ts >> rewritePostfix (VarP ident)
     ((LT.TLParen, _) : ts) -> do
       put ts
       expr <- parseExpr 0
@@ -168,6 +178,13 @@ parseExpr minPrecedence = do
     right <- parseExpr precedence'
     go (CompoundAssign op left right)
 
+parseForInit :: Parser (ForInit Parsed)
+parseForInit =
+  InitExpr
+    <$> (parseExpr 0 >>= \e -> consumeToken LT.TSemicolon >> return e)
+    <|> InitDecl <$> parseDecl
+    <|> (consumeToken LT.TSemicolon >> return Empty)
+
 parseStmt :: Parser (Stmt Parsed)
 parseStmt = do
   consumeComments
@@ -194,8 +211,46 @@ parseStmt = do
       put ts
       label <- consumeIdent
       consumeToken LT.TSemicolon
-      return $ GotoParsed label
-    ((LT.TIdent ident, _) : (LT.TColon, _) : ts) -> put ts >> LabelParsed ident <$> parseStmt
+      return $ GotoP label
+    ((LT.TIdent ident, _) : (LT.TColon, _) : ts) -> put ts >> LabelP ident <$> parseStmt
+    ((LT.TBreak, _) : ts) -> put ts >> consumeToken LT.TSemicolon >> return BreakP
+    ((LT.TContinue, _) : ts) -> put ts >> consumeToken LT.TSemicolon >> return ContinueP
+    ((LT.TWhile, _) : ts) -> do
+      put ts
+      consumeToken LT.TLParen
+      expr <- parseExpr 0
+      consumeToken LT.TRParen
+      WhileP expr <$> parseStmt
+    ((LT.TDo, _) : ts) -> do
+      put ts
+      stmt <- parseStmt
+      consumeTokens [LT.TWhile, LT.TLParen]
+      expr <- parseExpr 0
+      consumeTokens [LT.TRParen, LT.TSemicolon]
+      return $ DoWhileP stmt expr
+    ((LT.TFor, _) : ts) -> do
+      put ts
+      consumeToken LT.TLParen
+      initClause <- parseForInit
+      middleClause <- optional (parseExpr 0)
+      consumeToken LT.TSemicolon
+      lastClause <- optional (parseExpr 0)
+      consumeToken LT.TRParen
+      ForP initClause middleClause lastClause <$> parseStmt
+    ((LT.TSwitch, _) : ts) -> do
+      put ts
+      consumeToken LT.TLParen
+      expr <- parseExpr 0
+      consumeToken LT.TRParen
+      SwitchP expr <$> parseStmt
+    ((LT.TCase, _) : ts) -> do
+      put ts
+      expr <- parseExpr 0
+      consumeToken LT.TColon
+      result <- (Just <$> parseDecl) `catchError` const (pure Nothing)
+      when (isJust result) $ throwError $ IllegalDeclAfterCase "declarations cannot follow cases in C17"
+      return $ CaseP expr
+    ((LT.TDefault, _) : _) -> discardToken >> consumeToken LT.TColon >> return DefaultP
     _ -> do
       expr <- parseExpr 0
       consumeToken LT.TSemicolon
@@ -229,7 +284,7 @@ parseBlockItem = do
 parseBlock :: Parser (Block Parsed)
 parseBlock = do
   consumeComments
-  consumeToken LT.TLBrace *> (BlockParsed <$> go []) <* consumeToken LT.TRBrace
+  consumeToken LT.TLBrace *> (BlockP <$> go []) <* consumeToken LT.TRBrace
  where
   go :: [BlockItem Parsed] -> Parser [BlockItem Parsed]
   go items = do

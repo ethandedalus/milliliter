@@ -73,6 +73,14 @@ data Token
   | TElse
   | TQuestionMark
   | TGoto
+  | TDo
+  | TWhile
+  | TFor
+  | TBreak
+  | TContinue
+  | TSwitch
+  | TCase
+  | TDefault
   deriving (Show, Eq)
 
 tokenName :: Token -> String
@@ -132,6 +140,14 @@ tokenName = \case
   TElse -> "ELSE"
   TQuestionMark -> "QUESTION_MARK"
   TGoto -> "GOTO"
+  TDo -> "DO"
+  TWhile -> "WHILE"
+  TFor -> "FOR"
+  TBreak -> "BREAK"
+  TContinue -> "CONTINUE"
+  TSwitch -> "SWITCH"
+  TCase -> "CASE"
+  TDefault -> "DEFAULT"
 
 data RuleMatch = RuleMatch {matchToken :: Token, matchRest :: String, matchLen :: Int} deriving (Show, Eq)
 

@@ -11,3 +11,6 @@ build:
 
 test:
     cabal test --test-show-details=always
+
+doc:
+    cabal haddock --open

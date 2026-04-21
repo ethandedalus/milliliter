@@ -23,6 +23,7 @@ import Control.Monad.State (StateT)
 
 data Val = Lit Int | Var String deriving (Show, Eq)
 
+-- | UnaryOperator represents a TAC unary operator
 data UnaryOperator
   = Complement
   | Negate
@@ -43,6 +44,7 @@ instance From AST.UnaryOperator UnaryOperator where
     AST.PrefixDecrement -> PrefixIncrement
     AST.PostfixDecrement -> PostfixDecrement
 
+-- | BinaryOperator represents a TAC binary operator
 data BinaryOperator
   = Add
   | Sub
@@ -108,9 +110,12 @@ instance From AST.BinaryOperator BinaryOperator where
     AST.ShrAssign -> ShrAssign
     binop -> error $ "ICE: operator " ++ show binop ++ " cannot be converted directly into IR"
 
+-- | Instruction represents a TAC instruction
 data Instruction
-  = Return Val
-  | Unary UnaryOperator Val Val
+  = -- | Represents returning a value
+    Return Val
+  | -- | Represents a unary operation with a src and dst value
+    Unary UnaryOperator Val Val
   | Binary BinaryOperator Val Val Val
   | Copy Val Val
   | Jump String

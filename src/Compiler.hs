@@ -38,14 +38,14 @@ compile (Options fileName stopAfterLex stopAfterParse stopAfterSemanticAnalysis 
                 asm <- emit' asmAST
                 TL.writeFile out' $ toLazyText asm
  where
-  lift' = either (error . show)
+  unwrap = either (error . show) pure
 
-  lex' p = lift' pure (Lexer.lex p)
-  parse' ts = lift' pure $ P.parse P.parseProgram ts
-  analyze' ast = lift' pure $ S.analyze S.analyzeProgram ast
-  ir' p = lift' pure $ IR.transform IR.transformProgram p
-  codegen' ast = lift' pure $ codegen ast
-  emit' lowered = lift' pure $ emit program lowered
+  lex' p = unwrap (Lexer.lex p)
+  parse' ts = unwrap $ P.parse P.parseProgram ts
+  analyze' ast = unwrap $ S.analyze S.analyzeProgram ast
+  ir' p = unwrap $ IR.transform IR.transformProgram p
+  codegen' ast = unwrap $ codegen ast
+  emit' lowered = unwrap $ emit program lowered
 
 runCompiler :: IO ()
 runCompiler = execParser opts >>= compile

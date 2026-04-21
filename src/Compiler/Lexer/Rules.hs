@@ -33,6 +33,14 @@ lexKeywordOrIdent stream = case stream =~ "^[a-zA-Z_]([a-zA-Z0-9_])*" :: (String
     "if" -> Just (RuleMatch TIf rest 2)
     "else" -> Just (RuleMatch TElse rest 4)
     "goto" -> Just (RuleMatch TGoto rest 4)
+    "do" -> Just (RuleMatch TDo rest 2)
+    "while" -> Just (RuleMatch TWhile rest 5)
+    "for" -> Just (RuleMatch TFor rest 3)
+    "break" -> Just (RuleMatch TBreak rest 5)
+    "continue" -> Just (RuleMatch TContinue rest 8)
+    "switch" -> Just (RuleMatch TSwitch rest 6)
+    "case" -> Just (RuleMatch TCase rest 4)
+    "default" -> Just (RuleMatch TDefault rest 7)
     _ -> Just (RuleMatch (TIdent match) rest (length match))
   _ -> Nothing
 

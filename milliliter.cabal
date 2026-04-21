@@ -72,8 +72,9 @@ library
     Compiler.Pass
     Compiler.SemanticAnalysis
     Compiler.SemanticAnalysis.LabelValidation
+    Compiler.SemanticAnalysis.PopulateSwitchCases
+    Compiler.SemanticAnalysis.Resolve
     Compiler.SemanticAnalysis.Types
-    Compiler.SemanticAnalysis.VariableResolution
     Compiler.Stage
     Compiler.Types
 

@@ -22,7 +22,7 @@ func1 :: Test
 func1 = UnitTest "simple main" "int main(void) { return 0; }" compile $ pure result
  where
   compile = Lexer.lex >=> parse parseFunc
-  result = Func "main" (BlockParsed [S $ Return (Lit 0)])
+  result = Func "main" (BlockP [S $ Return (Lit 0)])
 
 func2 :: Test
 func2 = UnitTest "function with assignments" program compile $ pure result
@@ -33,10 +33,10 @@ func2 = UnitTest "function with assignments" program compile $ pure result
     Func
       { name = "main"
       , body =
-          BlockParsed
+          BlockP
             [ D (Decl "a" (Just $ Lit 5))
-            , S (ExprS (Assign (VarParsed "a") (Binary Add (VarParsed "a") (Lit 5))))
-            , S (Return (VarParsed "a"))
+            , S (ExprS (Assign (VarP "a") (Binary Add (VarP "a") (Lit 5))))
+            , S (Return (VarP "a"))
             ]
       }
 
@@ -49,9 +49,9 @@ func3 = UnitTest "using the return value of an assignment" program compile $ pur
     Func
       { name = "main"
       , body =
-          BlockParsed
+          BlockP
             [ D (Decl "a" (Just (Lit 5)))
-            , D (Decl "b" (Just (Binary Add (Lit 2) (Assign (VarParsed "a") (Lit 4)))))
-            , S (Return (VarParsed "b"))
+            , D (Decl "b" (Just (Binary Add (Lit 2) (Assign (VarP "a") (Lit 4)))))
+            , S (Return (VarP "b"))
             ]
       }

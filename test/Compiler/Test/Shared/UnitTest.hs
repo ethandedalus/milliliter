@@ -2,8 +2,8 @@ module Compiler.Test.Shared.UnitTest (UnitTest (..), Binding (..), prepareEnv) w
 
 import Compiler.AST
 import Compiler.Error (CompileError (..))
+import qualified Compiler.SemanticAnalysis.Resolve as S
 import qualified Compiler.SemanticAnalysis.Types as S
-import qualified Compiler.SemanticAnalysis.VariableResolution as S
 import Control.Lens
 import Control.Monad (forM_)
 import Control.Monad.Reader (runReaderT)
@@ -47,8 +47,17 @@ prepareEnv bindings = either (error . show) id $ do
           ]
   return (ctx, s, names)
  where
-  ctx0 = S.ScopeContext{S._scopeStack = [], S._func = Nothing}
-  sas0 = S.SemanticAnalysisState{S._varSeq = 0, S._varMap = mempty, S._scopeSeq = 0, S._funcLabels = mempty}
+  ctx0 = S.ScopeContext{S._scopeStack = [], S._func = Nothing, S._controlStack = []}
+  sas0 =
+    S.SemanticAnalysisState
+      { S._varSeq = 0
+      , S._varMap = mempty
+      , S._scopeSeq = 0
+      , S._funcLabels = mempty
+      , S._controlSeq = 0
+      , S._switchCases = mempty
+      , S._switchDefault = mempty
+      }
   scopes = nub [sid | Binding sid _ <- bindings] -- dedup scopes
   ctx = ctx0 & S.scopeStack .~ scopes -- set up scopes
   bind = forM_ bindings $ \(Binding sid name') -> bindTemp sid name' ()

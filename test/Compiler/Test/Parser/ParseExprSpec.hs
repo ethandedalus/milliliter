@@ -110,10 +110,10 @@ assignment1 :: Test
 assignment1 = UnitTest "simple assignment" "a = b" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Assign (VarParsed "a") (VarParsed "b")
+  result = Assign (VarP "a") (VarP "b")
 
 assignment2 :: Test
 assignment2 = UnitTest "compound assignment" "a = b = c = d" compile $ pure result
  where
   compile = Lexer.lex >=> parse (parseExpr 0)
-  result = Assign (VarParsed "a") (Assign (VarParsed "b") (Assign (VarParsed "c") (VarParsed "d")))
+  result = Assign (VarP "a") (Assign (VarP "b") (Assign (VarP "c") (VarP "d")))

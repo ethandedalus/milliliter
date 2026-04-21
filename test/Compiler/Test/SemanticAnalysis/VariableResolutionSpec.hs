@@ -6,8 +6,8 @@ import qualified Compiler.Lexer as Lexer (lex)
 import qualified Compiler.Parser as P (parse)
 import qualified Compiler.Parser.Combinators as P
 import qualified Compiler.SemanticAnalysis as S (analyzeWithState)
+import qualified Compiler.SemanticAnalysis.Resolve as S
 import qualified Compiler.SemanticAnalysis.Types as S
-import qualified Compiler.SemanticAnalysis.VariableResolution as S
 import Compiler.Test.Shared.UnitTest (Binding (..), UnitTest (UnitTest), prepareEnv)
 import Control.Monad (forM_, (>=>))
 import Data.Map ((!))
@@ -48,4 +48,4 @@ factor3 :: Test
 factor3 = UnitTest "unary (2)" "~a" (compile ctx sas) $ pure result
  where
   (ctx, sas, names) = prepareEnv [Binding 0 "a"]
-  result = Unary Complement (Var 0 (names ! "a"))
+  result = Unary Complement (VarR (names ! "a"))
